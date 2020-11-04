@@ -1,6 +1,7 @@
-from utils import Distribution
 import agents
 import numpy as np
+
+from pref_bootstrap.utils.utils import Distribution
 
 
 class FastOptimalAgent(agents.OptimalAgent):

@@ -1,11 +1,14 @@
 import random
 
+
 class Mdp(object):
     """An environment containing a single agent that can take actions.
 
     The environment keeps track of the current state of the agent, and updates
     it as the agent takes actions, and provides rewards to the agent.
     """
+    # FIXME(sam): replace this with the ModelBaseEnv abstraction from
+    # `imitation` (or just a hand-rolled abstraction).
 
     def __init__(self, mdp):
         self.gridworld = mdp
