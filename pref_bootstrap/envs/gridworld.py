@@ -133,6 +133,7 @@ class GridworldMdpNoR(object):
         newx, newy = Direction.move_in_direction(state, action)
         return state if self.walls[newy][newx] else (newx, newy)
 
+
 class GridworldMdp(GridworldMdpNoR):
     """A grid world where the objective is to navigate to one of many rewards.
 

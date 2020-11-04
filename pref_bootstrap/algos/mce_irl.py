@@ -105,14 +105,14 @@ def mce_occupancy_measures(env, *, R=None, pi=None):
 
 
 def mce_irl(
-    env,
-    optimiser_tuple,
-    rmodel,
-    demo_state_om,
-    linf_eps=1e-3,
-    grad_l2_eps=1e-4,
-    print_interval=100,
-):
+        env,
+        optimiser_tuple,
+        rmodel,
+        demo_state_om,
+        linf_eps=1e-3,
+        grad_l2_eps=1e-4,
+        max_iter=None,
+        print_interval=100, ):
     r"""Discrete MCE IRL.
     Args:
         env (ModelBasedEnv): a tabular MDP.
@@ -126,6 +126,7 @@ def mce_irl(
             occupancy measure for the current reward falls below this value.
         grad_l2_eps (float): optimisation also terminates if the $\ell_2$ norm
             of the MCE IRL gradient falls below this value.
+        max_iter (int): absolute max number of iterations to run for.
         print_interval (int or None): how often to log current loss stats
             (using `logging`). None to disable.
     Returns:
@@ -143,12 +144,13 @@ def mce_irl(
     grad_norm = grad_l2_eps + 1
     # number of optimisation steps taken
     t = 0
-    assert demo_state_om.shape == (len(obs_mat),)
+    assert demo_state_om.shape == (len(obs_mat), )
     opt_init, opt_update, opt_get_params = optimiser_tuple
     rew_params = rmodel.get_params()
     opt_state = opt_init(rew_params)
 
-    while linf_delta > linf_eps and grad_norm > grad_l2_eps:
+    while (linf_delta > linf_eps and grad_norm > grad_l2_eps and
+           (max_iter is None or t < max_iter)):
         # get reward predicted for each state by current model, & compute
         # expected # of times each state is visited by soft-optimal policy
         # w.r.t that reward function
@@ -169,15 +171,9 @@ def mce_irl(
         if print_interval is not None and 0 == (t % print_interval):
             logging.info(
                 "Occupancy measure error@iter % 3d: %f (||params||=%f, "
-                "||grad||=%f, ||E[dr/dw]||=%f)"
-                % (
-                    t,
-                    linf_delta,
-                    np.linalg.norm(rew_params),
-                    np.linalg.norm(grad),
-                    np.linalg.norm(pol_grad),
-                )
-            )
+                "||grad||=%f, ||E[dr/dw]||=%f)" %
+                (t, linf_delta, np.linalg.norm(rew_params),
+                 np.linalg.norm(grad), np.linalg.norm(pol_grad), ))
 
         # take a single optimiser step
         opt_state = opt_update(t, grad, opt_state)
@@ -194,7 +190,8 @@ def mce_irl(
 
 
 class RewardModel(abc.ABC):
-    """Abstract model for reward functions (linear, MLPs, nearest-neighbour, etc.)"""
+    """Abstract model for reward functions (linear, MLPs, nearest-neighbour,
+    etc.)"""
 
     @abc.abstractmethod
     def out(self, inputs):
@@ -304,7 +301,8 @@ class JaxRewardModel(RewardModel, abc.ABC):
         out_shape, self._net_params = net_init(rng, (-1, obs_dim))
         self._net_grads = jax.grad(self._net_apply)
         # output shape should just be batch dim, nothing else
-        assert out_shape == (-1,), "got a weird output shape %s" % (out_shape,)
+        assert out_shape == (-1, ), "got a weird output shape %s" % (
+            out_shape, )
 
     @abc.abstractmethod
     def make_stax_model(self):
@@ -327,9 +325,9 @@ class JaxRewardModel(RewardModel, abc.ABC):
         out_vecs = []
         for t in matrix_tups:
             for v in t:
-                new_shape = (v.shape[0],)
+                new_shape = (v.shape[0], )
                 if len(v.shape) > 1:
-                    new_shape = new_shape + (np.prod(v.shape[1:]),)
+                    new_shape = new_shape + (np.prod(v.shape[1:]), )
                 out_vecs.append(v.reshape(new_shape))
         return jnp.concatenate(out_vecs, axis=1)
 
@@ -380,8 +378,7 @@ class MLPRewardModel(JaxRewardModel):
                 JaxRewardModel.__init__().
         """
         assert activation in ["Tanh", "Relu", "Softplus"], (
-            "probably can't handle activation '%s'" % activation
-        )
+            "probably can't handle activation '%s'" % activation)
         self._hiddens = hiddens
         self._activation = activation
         super().__init__(obs_dim, **kwargs)
@@ -404,12 +401,12 @@ def _StaxSqueeze(axis=-1):
         ax = axis
         if ax < 0:
             ax = len(input_shape) + ax
-        assert ax < len(input_shape), "invalid axis %d for %d-dimensional tensor" % (
-            axis,
-            len(input_shape),
-        )
-        assert input_shape[ax] == 1, "axis %d is %d, not 1" % (axis, input_shape[ax])
-        output_shape = input_shape[:ax] + input_shape[ax + 1 :]
+        assert ax < len(
+            input_shape), "invalid axis %d for %d-dimensional tensor" % (
+                axis, len(input_shape), )
+        assert input_shape[ax] == 1, "axis %d is %d, not 1" % (axis,
+                                                               input_shape[ax])
+        output_shape = input_shape[:ax] + input_shape[ax + 1:]
         return output_shape, ()
 
     def apply_fun(params, inputs, **kwargs):

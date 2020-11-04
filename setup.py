@@ -28,4 +28,5 @@ setup(
         'matplotlib>=3.3.0',
         'jax>=0.2.5',
         'jaxlib>=0.1.56',
+        'gym>=0.17.3',
     ])
