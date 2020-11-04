@@ -10,5 +10,7 @@ directory:
   delete this, but it is nice to have it there to quickly cross-reference.
 - `pref_bootstrap/`: most of the actual code for our project. This is a Python
   module that can be installed with the `setup.py` script.
-- `notebooks/`: Jupyter/Colab notebooks. Hopefully most of our final experiment
-  code can fit in just a couple of self-explanatory Jupyter notebooks.
+
+To use this code, create a new Python 3.6+ virtualenv (or conda env) and do `pip
+install -e .` (this will install via the `setup.py` file). From there you should
+be able to do `import pref_bootstrap` to get at the actual code.
