@@ -1,6 +1,6 @@
 """Draft API for different feedback models."""
 
-from collections import abc
+import abc
 
 
 class EnvFeedbackModel(abc.ABC):
@@ -29,55 +29,31 @@ class EnvFeedbackModel(abc.ABC):
       reward function as part of the `EnvFeedbackModel` so that it knows what
       to do with reward parameters?). Possibly there's a layer of abstraction
       missing, or an inappropriate abstraction somewhere.
-
-    - This design doesn't account for algorithms that iteratively collect more
-      data. Pretty much everything except IRL is likely to fall in this bucket
-      (e.g. paired comparisons, corrections, scalar feedback, anything
-      DAgger-like, etc.). Probably the `EnvFeedbackModel` also needs an
-      _interaction model_ that makes it possible to get data. I don't know what
-      shape that should have, though, or how it should fit into the outer loop.
     """
-    def __init__(self, env):
+    def __init__(self, env, seed):
         self.env = env
 
     @abc.abstractmethod
-    def init_rew_params(self):
-        """Generate a random set of reward model parameters for this
-        feedback modality in this environment."""
-        pass
-
-    @abc.abstractmethod
-    def create_rew_prior(self):
-        """Create a probability distribution representing a prior for the
-        reward parameters."""
-        pass
-
-    @abc.abstractmethod
-    def init_bias_params(self):
+    def init_bias_params(self, rng):
         """Generate a random set of bias model parameters for this feedback
         modality in this environment."""
-        pass
 
     @abc.abstractmethod
-    def create_bias_prior(self):
+    def create_bias_prior(self, rng):
         """Similar to `create_rew_prior`, this method generates a probability
         distribution representing a prior over bias parameters."""
-        pass
 
     @abc.abstractmethod
-    def log_likelihood(self, data, reward_params, bias_params):
+    def log_likelihood(self, data, reward_model, bias_params):
         """Compute log likelihood of given human data under the current reward
         and bias model parameters."""
-        pass
 
     @abc.abstractmethod
-    def log_likelihood_grad_rew(self, data, reward_params, bias_params):
+    def log_likelihood_grad_rew(self, data, reward_model, bias_params):
         """Compute gradient of log likelihood of human data with respect to
         reward parameters only."""
-        pass
 
     @abc.abstractmethod
-    def log_likelihood_grad_bias(self, data, reward_params, bias_params):
+    def log_likelihood_grad_bias(self, data, reward_model, bias_params):
         """Compute gradient of log likelihood of human data with respect to
         bias parameters only."""
-        pass
