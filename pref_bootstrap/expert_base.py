@@ -24,6 +24,7 @@ class Expert(abc.ABC):
 
 
 class PairedComparisonExpert(Expert):
+    """Boltzmann-rational paired comparison expert."""
     def __init__(self, *args, boltz_temp=1.0, **kwargs):
         super().__init__(self, *args, **kwargs)
         assert boltz_temp is None or boltz_temp > 0

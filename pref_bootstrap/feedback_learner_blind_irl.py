@@ -26,23 +26,22 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
 
     def create_bias_prior(self, rng):
         rng_in, rng_out = jrandom.split(rng)
-        # Note to self: for some of these bias models, we'll need to be able to
-        # project onto some constrained space. The prior might be a good place
-        # to do that (e.g. add a project_to_support function to the prior.
-        raise NotImplementedError("I don't know what API to use for this yet.")
+        # FIXME(sam): add a beta prior, and also improve the prior API so that
+        # you can project into support
         return prior, rng_out
 
     def log_likelihood(self, data, reward_model, bias_params):
         # log likelihood of some trajectories under the current reward model
         assert isinstance(data, dict)
         assert {'states', 'acts'} <= data.keys()
-        states, acts = data['obs'], data['states'], data['acts']
+        states, acts = data['states'], data['acts']
         B, T = acts.shape
         assert states.shape == (B, T + 1)
 
         # compute log probability of initial states
         init_states = states[:, 0]
-        init_state_probs = self.env.initial_state_dict[init_states]
+        init_state_probs = self.env.initial_state_dist[init_states]
+        assert init_state_probs.shape == (len(init_states), )
         # average over dataset to compute expectation
         log_init_probs = jnp.mean(jnp.log(init_state_probs))
 
@@ -65,7 +64,8 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
         V, Q, pi = mce_partition_fh(self.env, R=blind_reward_mat)
         # pi is indexed by pi[t,s,a]
         time_indices = jnp.repeat(jnp.arange(T)[None, :], B, axis=0)
-        pi_idx_tup = (time_indices, states_t_flat, acts_flat)
+        time_indices_flat = time_indices.flatten()
+        pi_idx_tup = (time_indices_flat, states_t_flat, acts_flat)
         act_probs = pi[pi_idx_tup]
         act_probs = act_probs.reshape((B, T))
         # sum over time, average over dataset
@@ -86,7 +86,8 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
 
         # compute exact occupancy measure for a policy optimal w.r.t. those
         # 'blind' observations
-        om_t, om = mce_occupancy_measures(self.env, R=blind_obs_mat)
+        blind_rews = reward_model.out(blind_obs_mat)
+        om_t, om = mce_occupancy_measures(self.env, R=blind_rews)
         assert om.shape == (self.env.n_states, )
         assert om_t.shape == (T, self.env.n_states)
 
@@ -110,7 +111,7 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
             data, reward_model, bias_params)
 
         # compute reward gradient in each state
-        reward_grads = reward_model.out_grads(blind_obs_mat)
+        reward_grads = reward_model.grads(blind_obs_mat)
 
         empirical_grad_term = jnp.mean(empirical_om[:, None] * reward_grads,
                                        axis=0)
@@ -123,26 +124,25 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
         om, empirical_om, _ = self._ll_compute_oms(data, reward_model,
                                                    bias_params)
 
-        def blind_reward(biases):
+        def blind_reward(biases, obs_matrix):
             """Compute blind reward for all states in such a way that Jax can
             differentiate with respect to the bias/masking vector. This is
             trivial for linear rewards, but harder for more general
             RewardModels."""
-
-            # need to recompute blind_obs_mat so jax can differentiate through
-            # it, even though we already computed in _ll_compute_oms (ugh, this
-            # is ugly)
-            blind_obs_mat = self.env.observation_matrix * bias_params[None]
-            assert blind_obs_mat.shape == self.env.observation_matrix.shape
+            blind_obs_mat = obs_matrix * biases
+            assert blind_obs_mat.shape == obs_matrix.shape
             return reward_model.out(blind_obs_mat)
 
         # compute gradient of reward in each state w.r.t. biases
-        blind_rew_grads = jax.grad(blind_reward)
-        blind_rew_grads(bias_params)
+        # (we do this separately for each input)
+        blind_rew_grad_fn = jax.grad(blind_reward)
+        lifted_blind_rew_grad_fn = jax.vmap(jax.partial(blind_rew_grad_fn,
+                                                        bias_params))
+        lifted_grads = lifted_blind_rew_grad_fn(self.env.observation_matrix)
 
-        empirical_grad_term = jnp.mean(empirical_om[:, None] * blind_rew_grads,
+        empirical_grad_term = jnp.mean(empirical_om[:, None] * lifted_grads,
                                        axis=0)
-        pi_grad_term = jnp.mean(om[:, None] * blind_rew_grads, axis=0)
+        pi_grad_term = jnp.mean(om[:, None] * lifted_grads, axis=0)
         grads = empirical_grad_term - pi_grad_term
 
         return grads

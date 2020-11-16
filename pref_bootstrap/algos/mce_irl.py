@@ -124,7 +124,6 @@ def mce_irl_sample(env, n_traj, *, pi=None, R=None):
         done = False
         t = 0
         while not done:
-            print(t, env.horizon)
             pi_now = pi[t, env.cur_state]
             act = np.random.choice(env.n_actions, p=pi_now)
             obs, _, done, _ = env.step(act)
@@ -140,9 +139,7 @@ def mce_irl_sample(env, n_traj, *, pi=None, R=None):
 
     # stack so that each tensor in the `demos` dict has leading dimension
     # `n_demos` (and same trailing dimensions as before)
-    demos = {
-        k: np.stack(v, axis=0) for k, v in demos
-    }
+    demos = {k: np.stack(v, axis=0) for k, v in demos.items()}
 
     return demos
 

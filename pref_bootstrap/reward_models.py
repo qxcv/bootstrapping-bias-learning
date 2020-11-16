@@ -30,18 +30,31 @@ class RewardPrior(abc.ABC):
 
 class FixedGaussianRewardPrior(abc.ABC):
     """Gaussian prior on reward function parameters."""
-    def __init__(self, *, mean=0.0, scale=1.0):
+    def __init__(self, *, mean=0.0, std=1.0):
         assert isinstance(mean, float)
-        assert isinstance(scale, float)
-        assert scale > 0
+        assert isinstance(std, float)
+        assert std > 0
         self.mean = mean
-        self.scale = scale
+        self.std = std
 
     def log_prior(self, params):
-        raise NotImplementedError("still need to implement this")
+        """Return log likelihood of parameters under prior."""
+        # log likelihood function, see:
+        # https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Likelihood_function
+        variance = self.std ** 2
+        ndim = params.ndim
+        mean_diff = params - self.mean
+        scaled_sq_err = jnp.dot(mean_diff, mean_diff) / variance
+        # log determinant of covariance matrix
+        log_det_cov = 2 * ndim * jnp.log(self.std)
+        norm_term = ndim * jnp.log(2 * jnp.pi)
+        return -0.5 * (log_det_cov + scaled_sq_err + norm_term)
 
-    def log_prior_grad(self, inputs):
-        raise NotImplementedError("still need to implement this")
+    def log_prior_grad(self, params):
+        # gradient of above function w.r.t. params
+        variance = self.std ** 2
+        mean_diff = params - self.mean
+        return -mean_diff / variance
 
     def set_hyperparams(self, params):
         raise NotImplementedError("This prior has no hyperparameters")
@@ -124,7 +137,9 @@ class LinearRewardModel(RewardModel):
         self._weights = rng.randn(obs_dim)
 
     def out(self, inputs):
-        assert inputs.shape[1:] == self._weights.shape
+        in_shape = inputs.shape
+        w_shape = self._weights.shape
+        assert in_shape[-1:] == w_shape, (in_shape, w_shape)
         return inputs @ self._weights
 
     def grads(self, inputs):

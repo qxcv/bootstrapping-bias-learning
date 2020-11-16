@@ -6,6 +6,8 @@ import random
 # matplotlib.use("tkagg")
 # import seaborn as sns
 import matplotlib.pyplot as plt
+import jax.numpy as jnp
+import numpy as np
 
 # # Comment this line out to return to matplotlib plot defaults
 # sns.set(rc={ # 'text.usetex': True,
@@ -585,6 +587,34 @@ def concat_folder(folder, element):
     if folder[-1] == '/':
         return folder + element
     return folder + '/' + element
+
+
+def numeric_grad(fn, base_vec, eps=1e-5):
+    """Numerically approximate gradient of `fn` using two-sided
+    approximation."""
+    # convert array to Numpy in case it's a Jax array
+    base_vec_np = np.asarray(base_vec)
+    # accumulator array that holds all outputs
+    out_grad = np.zeros_like(base_vec_np)
+
+    # iterate over all indices into `base_vec`
+    it = np.nditer(base_vec_np, ['multi_index'])
+    for _ in it:
+        idx = it.multi_index
+
+        # increase/decrease element at this index
+        above = base_vec_np.copy()
+        above[idx] += eps / 2
+        below = base_vec_np.copy()
+        below[idx] -= eps / 2
+
+        # now evaluate & approximate
+        val_below = float(fn(below).item())
+        val_above = float(fn(above).item())
+        grad_guess = (val_above - val_below) / eps
+        out_grad[idx] = float(grad_guess)
+
+    return out_grad
 
 
 if __name__ == '__main__':
