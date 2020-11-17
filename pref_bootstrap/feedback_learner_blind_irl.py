@@ -13,9 +13,6 @@ from pref_bootstrap.algos.mce_irl import (mce_partition_fh,
 class BlindIRLFeedbackModel(EnvFeedbackModel):
     """Feedback model for MCE IRL, with sub-rationality coming from the agent
     being "blind" to certain elements of the state."""
-    def __init__(self, env):
-        self.env = env
-
     def init_bias_params(self, rng):
         # WARNING: these bias params are meant to be constrained to 0<=b<=1 (or
         # some other convex approximation of {0,1}).
@@ -31,7 +28,8 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
         return prior, rng_out
 
     def log_likelihood(self, data, reward_model, bias_params):
-        # log likelihood of some trajectories under the current reward model
+        # expected log likelihood of some trajectories under the current reward
+        # model
         assert isinstance(data, dict)
         assert {'states', 'acts'} <= data.keys()
         states, acts = data['states'], data['acts']

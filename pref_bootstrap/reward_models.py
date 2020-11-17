@@ -196,8 +196,9 @@ class JaxRewardModel(RewardModel, abc.ABC):
         return jnp.concatenate(out_vecs)
 
     def _flatten_batch(self, matrix_tups):
-        """Flatten all except leading dim & concatenate results together in channel dim.
-        (Channel dim is whatever the dim after the leading dim is)."""
+        """Flatten all except leading dim & concatenate results together in
+        channel dim. (Channel dim is whatever the dim after the leading dim
+        is)."""
         out_vecs = []
         for t in matrix_tups:
             for v in t:

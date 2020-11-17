@@ -10,27 +10,12 @@ class EnvFeedbackModel(abc.ABC):
     (e.g. demonstrations, corrections, paired comparisons), and explicitly
     associated with a specific environment. `EnvFeedbackModel` instances do not
     have state of their own (except environment-specific metadata), but they
-    are able to generate reward and bias parameter vectors, as well as priors
-    for those vectors. Later on, the generated reward and bias parameter
-    vectors can be used to compute the log likelihood of some observed data,
-    and to compute gradients of the log likelihood with respect to both reward
-    parameters and bias parameters.
-
-    PROBLEMS:
-
-    - It feels weird that `create_{rew,bias}_prior` returns a distribution
-      (which can evaluate log likelihoods, and potentially has its own
-      parameters) while `init_{rew,bias}_params` just returns a flat parameter
-      vector. If you want to do anything with the reward/bias parameter vector,
-      you have to call methods of `EnvFeedbackModel`.
-
-      This is probably going to lead to weird stuff if I consider more complex
-      reward/bias models (e.g. do I have to store the NN architecture for the
-      reward function as part of the `EnvFeedbackModel` so that it knows what
-      to do with reward parameters?). Possibly there's a layer of abstraction
-      missing, or an inappropriate abstraction somewhere.
-    """
-    def __init__(self, env, seed):
+    are able to generate bias parameter vectors, as well as priors for those
+    vectors. Later on, the bias parameter vector can be combined with a reward
+    model to compute the log likelihood of some observed data, and to compute
+    gradients of the log likelihood with respect to both reward parameters and
+    bias parameters."""
+    def __init__(self, env):
         self.env = env
 
     @abc.abstractmethod
