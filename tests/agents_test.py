@@ -1,16 +1,17 @@
-import unittest
-import numpy as np
-import tensorflow as tf
 import time
+import unittest
+
 import agents
 import fast_agents
-
+import numpy as np
+import tensorflow as tf
 from agent_interface import Agent
-from agent_runner import run_agent, get_reward_from_trajectory
-from gridworld.gridworld import GridworldMdp, Direction
+from agent_runner import get_reward_from_trajectory, run_agent
+from gridworld.gridworld import Direction, GridworldMdp
 from mdp_interface import Mdp
 from model import tf_value_iter_no_config
 from utils import Distribution, set_seeds
+
 
 class TestAgents(unittest.TestCase):
     def setUp(self):
@@ -20,14 +21,9 @@ class TestAgents(unittest.TestCase):
         trajectory = run_agent(agent, env, episode_length, determinism=True)
         actions = [action for _, action, _, _ in trajectory]
         return actions, get_reward_from_trajectory(trajectory, gamma)
-        
 
     def optimal_agent_test(self, agent):
-        grid = ['XXXXXXXXX',
-                'X9X6XA  X',
-                'X X X XXX',
-                'X      2X',
-                'XXXXXXXXX']
+        grid = ["XXXXXXXXX", "X9X6XA  X", "X X X XXX", "X      2X", "XXXXXXXXX"]
         n, s, e, w, stay = self.all_actions
 
         mdp = GridworldMdp(grid, living_reward=-0.1)
@@ -37,7 +33,7 @@ class TestAgents(unittest.TestCase):
 
         # Action distribution
         action_dist = agent.get_action_distribution(start_state)
-        self.assertEqual(action_dist, Distribution({s : 1}))
+        self.assertEqual(action_dist, Distribution({s: 1}))
 
         # Trajectory
         actions, _ = self.run_on_env(agent, env, gamma=0.95, episode_length=10)
@@ -57,7 +53,7 @@ class TestAgents(unittest.TestCase):
 
         # Action distribution
         action_dist = agent.get_action_distribution(start_state)
-        self.assertEqual(action_dist, Distribution({s : 1}))
+        self.assertEqual(action_dist, Distribution({s: 1}))
 
         # Trajectory
         actions, reward = self.run_on_env(agent, env, gamma=0.5, episode_length=10)
@@ -99,7 +95,7 @@ class TestAgents(unittest.TestCase):
         start = time.time()
         fn()
         end = time.time()
-        print(message + ': ' + str(end - start) + 's')
+        print(message + ": " + str(end - start) + "s")
 
     # TODO(rohinmshah): Think through and fix this test
     """
@@ -153,12 +149,7 @@ class TestAgents(unittest.TestCase):
     """
 
     def test_myopic_agent(self):
-        grid = ['XXXXXXXX',
-                'XA     X',
-                'X XXXX9X',
-                'X      X',
-                'X X2   X',
-                'XXXXXXXX']
+        grid = ["XXXXXXXX", "XA     X", "X XXXX9X", "X      X", "X X2   X", "XXXXXXXX"]
         n, s, e, w, stay = self.all_actions
 
         mdp = GridworldMdp(grid, living_reward=-0.1)
@@ -175,11 +166,13 @@ class TestAgents(unittest.TestCase):
         self.assertEqual(actions, [s, s, e, e, e, e, e, n, stay, stay])
 
     def test_uncalibrated_agents(self):
-        grid = [['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
-                ['X',  -9, ' ', 'X', ' ', ' ', ' ', ' ', ' ', ' ', 'X'],
-                ['X', 'A', ' ', ' ', ' ', ' ', ' ', ' ', ' ',  3 , 'X'],
-                ['X', ' ', ' ', 'X',  -9,  -9,  -9,  -9,  -9, ' ', 'X'],
-                ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X']]
+        grid = [
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X", "X", "X"],
+            ["X", -9, " ", "X", " ", " ", " ", " ", " ", " ", "X"],
+            ["X", "A", " ", " ", " ", " ", " ", " ", " ", 3, "X"],
+            ["X", " ", " ", "X", -9, -9, -9, -9, -9, " ", "X"],
+            ["X", "X", "X", "X", "X", "X", "X", "X", "X", "X", "X"],
+        ]
         n, s, e, w, stay = self.all_actions
 
         mdp = GridworldMdp(grid, living_reward=-0.1, noise=0.2)
@@ -190,23 +183,26 @@ class TestAgents(unittest.TestCase):
         actions, _ = self.run_on_env(agent1, env, gamma=0.9, episode_length=13)
         self.assertEqual(actions, [e, e, e, n, e, e, e, e, e, s, stay, stay, stay])
 
-        agent2 = agents.UncalibratedAgent(
-            gamma=0.9, num_iters=20, calibration_factor=5)
+        agent2 = agents.UncalibratedAgent(gamma=0.9, num_iters=20, calibration_factor=5)
         agent2.set_mdp(mdp)
         actions, _ = self.run_on_env(agent2, env, gamma=0.9, episode_length=13)
-        self.assertEqual(actions, [e, e, e, e, e, e, e, e, stay, stay, stay, stay, stay])
+        self.assertEqual(
+            actions, [e, e, e, e, e, e, e, e, stay, stay, stay, stay, stay]
+        )
 
         agent3 = agents.UncalibratedAgent(
-            gamma=0.9, num_iters=20, calibration_factor=0.5)
+            gamma=0.9, num_iters=20, calibration_factor=0.5
+        )
         agent3.set_mdp(mdp)
         actions, _ = self.run_on_env(agent3, env, gamma=0.9, episode_length=13)
         self.assertEqual(actions, [s, e, n, e, e, n, e, e, e, e, e, s, stay])
 
     def compare_agents(self, name, agent1, agent2, places=7, print_mdp=False):
-        print('Comparing {0} agents'.format(name))
+        print("Comparing {0} agents".format(name))
         set_seeds(314159)
         mdp = GridworldMdp.generate_random_connected(16, 16, 5, 0.2)
-        if print_mdp: print(mdp)
+        if print_mdp:
+            print(mdp)
         env = Mdp(mdp)
         self.time(lambda: agent1.set_mdp(mdp), "Python planner")
         self.time(lambda: agent2.set_mdp(mdp), "Numpy/Tensorflow planner")
@@ -219,40 +215,54 @@ class TestAgents(unittest.TestCase):
     def test_compare_optimal_agents(self):
         agent1 = agents.OptimalAgent(gamma=0.95, num_iters=20)
         agent2 = fast_agents.FastOptimalAgent(gamma=0.95, num_iters=20)
-        self.compare_agents('optimal', agent1, agent2, print_mdp=True)
+        self.compare_agents("optimal", agent1, agent2, print_mdp=True)
 
     def test_compare_naive_agents(self):
         agent1 = agents.NaiveTimeDiscountingAgent(10, 1, gamma=0.95, num_iters=20)
-        agent2 = fast_agents.FastNaiveTimeDiscountingAgent(10, 1, gamma=0.95, num_iters=20)
-        self.compare_agents('naive', agent1, agent2)
+        agent2 = fast_agents.FastNaiveTimeDiscountingAgent(
+            10, 1, gamma=0.95, num_iters=20
+        )
+        self.compare_agents("naive", agent1, agent2)
 
     def test_compare_sophisticated_agents(self):
-        agent1 = agents.SophisticatedTimeDiscountingAgent(10, 1, gamma=0.95, num_iters=20)
-        agent2 = fast_agents.FastSophisticatedTimeDiscountingAgent(10, 1, gamma=0.95, num_iters=20)
-        self.compare_agents('sophisticated', agent1, agent2)
+        agent1 = agents.SophisticatedTimeDiscountingAgent(
+            10, 1, gamma=0.95, num_iters=20
+        )
+        agent2 = fast_agents.FastSophisticatedTimeDiscountingAgent(
+            10, 1, gamma=0.95, num_iters=20
+        )
+        self.compare_agents("sophisticated", agent1, agent2)
 
     def test_compare_myopic_agents(self):
         agent1 = agents.MyopicAgent(6, gamma=0.95, num_iters=20)
         agent2 = fast_agents.FastMyopicAgent(6, gamma=0.95, num_iters=20)
-        self.compare_agents('myopic', agent1, agent2)
+        self.compare_agents("myopic", agent1, agent2)
 
     def test_compare_overconfident_agents(self):
-        agent1 = agents.UncalibratedAgent(gamma=0.95, num_iters=20, calibration_factor=5)
-        agent2 = fast_agents.FastUncalibratedAgent(gamma=0.95, num_iters=20, calibration_factor=5)
-        self.compare_agents('overconfident', agent1, agent2)
+        agent1 = agents.UncalibratedAgent(
+            gamma=0.95, num_iters=20, calibration_factor=5
+        )
+        agent2 = fast_agents.FastUncalibratedAgent(
+            gamma=0.95, num_iters=20, calibration_factor=5
+        )
+        self.compare_agents("overconfident", agent1, agent2)
 
     def test_compare_underconfident_agents(self):
-        agent1 = agents.UncalibratedAgent(gamma=0.95, num_iters=20, calibration_factor=0.5)
-        agent2 = fast_agents.FastUncalibratedAgent(gamma=0.95, num_iters=20, calibration_factor=0.5)
+        agent1 = agents.UncalibratedAgent(
+            gamma=0.95, num_iters=20, calibration_factor=0.5
+        )
+        agent2 = fast_agents.FastUncalibratedAgent(
+            gamma=0.95, num_iters=20, calibration_factor=0.5
+        )
         # TODO(rohinmshah): This test fails at 3 decimal places, look
         # into this. This seems too large to be a rounding error so
         # could actually be a bug.
-        self.compare_agents('underconfident', agent1, agent2, places=2)
+        self.compare_agents("underconfident", agent1, agent2, places=2)
 
     def test_value_iteration(self):
         agent1 = agents.OptimalAgent(gamma=0.95, num_iters=20)
         agent2 = ValueIterationAgent(gamma=0.95, num_iters=20)
-        self.compare_agents('soft value iteration', agent1, agent2, places=2)
+        self.compare_agents("soft value iteration", agent1, agent2, places=2)
 
 
 class ValueIterationAgent(Agent):
@@ -265,10 +275,17 @@ class ValueIterationAgent(Agent):
         self.reward_tf = tf.placeholder(tf.float32, shape=(imsize, imsize))
         a = tf.reshape(self.wall_tf, [1, imsize, imsize])
         b = tf.reshape(self.reward_tf, [1, imsize, imsize])
-        X = tf.stack([a, b],axis=-1)
+        X = tf.stack([a, b], axis=-1)
         qvals_vector = tf_value_iter_no_config(
-            X, ch_q=5, imsize=imsize, bsize=1, num_iters=self.num_iters,
-            discount=self.gamma, noise=noise, vi_beta=1000).logits
+            X,
+            ch_q=5,
+            imsize=imsize,
+            bsize=1,
+            num_iters=self.num_iters,
+            discount=self.gamma,
+            noise=noise,
+            vi_beta=1000,
+        ).logits
         self.qvals_tensor = tf.reshape(qvals_vector, (imsize, imsize, 5))
 
     def set_mdp(self, mdp, reward_mdp=None):
@@ -292,5 +309,6 @@ class ValueIterationAgent(Agent):
         a_idx = Direction.get_number_from_direction(a)
         return self.qvals[y][x][a_idx]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

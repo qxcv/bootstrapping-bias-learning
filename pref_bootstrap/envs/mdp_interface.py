@@ -2,8 +2,8 @@ import abc
 import random
 
 import gym
-from gym import spaces
 import numpy as np
+from gym import spaces
 
 
 class Mdp(object):
@@ -12,6 +12,7 @@ class Mdp(object):
     The environment keeps track of the current state of the agent, and updates
     it as the agent takes actions, and provides rewards to the agent.
     """
+
     # FIXME(sam): replace this with the ModelBaseEnv abstraction from
     # `imitation` (or just a hand-rolled abstraction).
 
@@ -40,11 +41,11 @@ class Mdp(object):
         for next_state, prob in results:
             sum += prob
             if sum > 1.0:
-                raise ValueError('Total transition probability more than one.')
+                raise ValueError("Total transition probability more than one.")
             if rand < sum:
                 reward = self.gridworld.get_reward(state, action)
                 return (next_state, reward)
-        raise ValueError('Total transition probability less than one.')
+        raise ValueError("Total transition probability less than one.")
 
     def reset(self):
         """Resets the environment. Does NOT reset the agent."""
@@ -231,7 +232,7 @@ class GridworldEnvWrapper(ModelBasedEnv):
         self._obs_mat = np.eye(self.n_states)
 
         # populate rewards
-        self._rew_mat = np.zeros((n_states, ))
+        self._rew_mat = np.zeros((n_states,))
         for xy_state, rew in self.gridworld.rewards.items():
             int_state = self._convert_xy_state(xy_state)
             self._rew_mat[int_state] = rew
@@ -242,7 +243,7 @@ class GridworldEnvWrapper(ModelBasedEnv):
         self._horizon = horizon
 
         # initial state distribution is deterministic
-        self._init_state_dist = np.zeros((n_states, ))
+        self._init_state_dist = np.zeros((n_states,))
         int_init_state = self._convert_xy_state(self.gridworld.start_state)
         self._init_state_dist[int_init_state] = 1.0
 

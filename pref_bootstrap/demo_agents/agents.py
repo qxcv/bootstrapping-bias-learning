@@ -1,4 +1,5 @@
 from collections import defaultdict
+
 import numpy as np
 
 from pref_bootstrap.demo_agents.agent_interface import Agent
@@ -122,7 +123,7 @@ class ValueIterationLikeAgent(Agent):
                 best_value, best_actions = action_value, [a]
             elif action_value == best_value:
                 best_actions.append(a)
-        return Distribution({a : 1 for a in best_actions})
+        return Distribution({a: 1 for a in best_actions})
         # For more determinism, you can break ties deterministically:
         # return Distribution({best_actions[0] : 1})
 
@@ -175,11 +176,14 @@ class ValueIterationLikeAgent(Agent):
         """Converts a generalized state to a normal state."""
         return mu
 
+
 class OptimalAgent(ValueIterationLikeAgent):
     """An agent that implements regular value iteration."""
+
     def __str__(self):
-        pattern = 'Optimal-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}'
+        pattern = "Optimal-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
         return pattern.format(self)
+
 
 class DelayDependentAgent(ValueIterationLikeAgent):
     """An agent that plans differently as it looks further in the future.
@@ -227,6 +231,7 @@ class DelayDependentAgent(ValueIterationLikeAgent):
         """Override to handle states with delays."""
         return (mu[0], mu[1])
 
+
 class TimeDiscountingAgent(DelayDependentAgent):
     """A hyperbolic time discounting agent.
 
@@ -236,21 +241,22 @@ class TimeDiscountingAgent(DelayDependentAgent):
     Inconsistent Agents" for more details.
     """
 
-    def __init__(self, max_delay, discount_constant,
-                 gamma=0.9, beta=None, num_iters=50):
+    def __init__(
+        self, max_delay, discount_constant, gamma=0.9, beta=None, num_iters=50
+    ):
         """Initializes the agent, setting any relevant hyperparameters.
 
         discount_constant: Float. The parameter k in R/(1 + kd) (see above).
         """
-        super(TimeDiscountingAgent, self).__init__(
-            max_delay, gamma, beta, num_iters)
+        super(TimeDiscountingAgent, self).__init__(max_delay, gamma, beta, num_iters)
         self.discount_constant = discount_constant
 
     def get_reward(self, mu, a):
         """Override to apply hyperbolic time discounting."""
         x, y, d = mu
-        discount = (1.0 / (1.0 + self.discount_constant * d))
+        discount = 1.0 / (1.0 + self.discount_constant * d)
         return discount * self.mdp.get_reward((x, y), a)
+
 
 class NaiveTimeDiscountingAgent(TimeDiscountingAgent):
     """The naive time discounting agent.
@@ -258,9 +264,11 @@ class NaiveTimeDiscountingAgent(TimeDiscountingAgent):
     See the paper "Learning the Preferences of Ignorant, Inconsistent Agents"
     for more details.
     """
+
     def __str__(self):
-        pattern = 'Naive-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}'
+        pattern = "Naive-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
         return pattern.format(self)
+
 
 class SophisticatedTimeDiscountingAgent(TimeDiscountingAgent):
     """The sophisticated time discounting agent.
@@ -268,14 +276,16 @@ class SophisticatedTimeDiscountingAgent(TimeDiscountingAgent):
     See the paper "Learning the Preferences of Ignorant, Inconsistent Agents"
     for more details.
     """
+
     def get_mu_for_planning(self, mu):
         """Override to implement sophisticated time-inconsistent behavior."""
         x, y, d = mu
         return (x, y, 0)
 
     def __str__(self):
-        pattern = 'Sophisticated-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}'
+        pattern = "Sophisticated-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
         return pattern.format(self)
+
 
 class MyopicAgent(DelayDependentAgent):
     """An agent that only looks forward for a fixed horizon."""
@@ -300,7 +310,7 @@ class MyopicAgent(DelayDependentAgent):
         return super(MyopicAgent, self).get_reward(mu, a)
 
     def __str__(self):
-        pattern = 'Myopic-horizon-{0.horizon}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}'
+        pattern = "Myopic-horizon-{0.horizon}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
         return pattern.format(self)
 
 
@@ -334,5 +344,5 @@ class UncalibratedAgent(ValueIterationLikeAgent):
         return list(dist.get_dict().items())
 
     def __str__(self):
-        pattern = 'Uncalibrated-calibration-{0.calibration_factor}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}'
+        pattern = "Uncalibrated-calibration-{0.calibration_factor}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
         return pattern.format(self)

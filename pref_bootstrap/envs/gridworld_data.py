@@ -1,9 +1,10 @@
-import numpy as np
-import random
 import os
+import random
+
+import numpy as np
 
 from pref_bootstrap.demo_agents import fast_agents
-from pref_bootstrap.envs.gridworld import GridworldMdp, Direction
+from pref_bootstrap.envs.gridworld import Direction, GridworldMdp
 from pref_bootstrap.utils.utils import Distribution
 
 
@@ -18,10 +19,10 @@ def print_training_example(mdp, trajectory):
     # with the reward. Note this does a reasonable thing even when the agent
     # never got to the reward.
     states_to_mark = [next_state for _, _, next_state, _ in trajectory[:-2]]
-    mdp_grid = [[c for c in row] for row in str(mdp).split('\n')]
+    mdp_grid = [[c for c in row] for row in str(mdp).split("\n")]
     for x, y in states_to_mark:
-        mdp_grid[y][x] = '.'
-    mdp_string_with_trajectory = '\n'.join([''.join(row) for row in mdp_grid])
+        mdp_grid[y][x] = "."
+    mdp_string_with_trajectory = "\n".join(["".join(row) for row in mdp_grid])
     print(mdp_string_with_trajectory)
 
 
@@ -53,14 +54,14 @@ def generate_example(agent, config, other_agents=[], goals=None):
     """
     imsize = config.imsize
     num_actions = config.num_actions
-    assert not config.simple_mdp, 'simple_mdp no longer supported'
+    assert not config.simple_mdp, "simple_mdp no longer supported"
     num_rewards, noise = config.num_rewards, config.noise
-    mdp = GridworldMdp.generate_random_connected(imsize, imsize,
-                                                    num_rewards, noise, goals)
+    mdp = GridworldMdp.generate_random_connected(
+        imsize, imsize, num_rewards, noise, goals
+    )
 
     def dist_to_numpy(dist):
-        return dist.as_numpy_array(Direction.get_number_from_direction,
-                                   num_actions)
+        return dist.as_numpy_array(Direction.get_number_from_direction, num_actions)
 
     def action(state):
         # Walls are invalid states and the MDP will refuse to give an action for
@@ -72,8 +73,7 @@ def generate_example(agent, config, other_agents=[], goals=None):
         return dist_to_numpy(agent.get_action_distribution(state))
 
     agent.set_mdp(mdp)
-    action_dists = [[action((x, y)) for x in range(imsize)]
-                    for y in range(imsize)]
+    action_dists = [[action((x, y)) for x in range(imsize)] for y in range(imsize)]
     action_dists = np.array(action_dists)
 
     def calculate_different(other_agent):
@@ -92,13 +92,14 @@ def generate_example(agent, config, other_agents=[], goals=None):
             # TODO(rohinmshah): L2 norm is not the right distance metric for
             # probability distributions, maybe use something else?
             # Not KL divergence, since it may be undefined
-            return np.linalg.norm(action_dist -
-                                  dist) > config.action_distance_threshold
+            return np.linalg.norm(action_dist - dist) > config.action_distance_threshold
 
-        return sum([
-            sum([(1 if differs((x, y)) else 0) for x in range(imsize)])
-            for y in range(imsize)
-        ])
+        return sum(
+            [
+                sum([(1 if differs((x, y)) else 0) for x in range(imsize)])
+                for y in range(imsize)
+            ]
+        )
 
     num_different = np.array([calculate_different(o) for o in other_agents])
     walls, rewards, start_state = mdp.convert_to_numpy_input()
@@ -106,7 +107,7 @@ def generate_example(agent, config, other_agents=[], goals=None):
 
 
 def get_filename(n, agent, config, seed):
-    pattern = 'gridworlds-v1-seed-{0}-num-{1}-agent-{2}-imsize-{3.imsize}-wallprob-{3.wall_prob}-rewardprob-{3.reward_prob}-simplemdp-{3.simple_mdp}-noise-{3.noise}.npz'
+    pattern = "gridworlds-v1-seed-{0}-num-{1}-agent-{2}-imsize-{3.imsize}-wallprob-{3.wall_prob}-rewardprob-{3.reward_prob}-simplemdp-{3.simple_mdp}-noise-{3.noise}.npz"
     return pattern.format(seed, n, agent, config)
 
 
@@ -117,16 +118,12 @@ def save_dataset(filename, dataset):
 def load_dataset(filename):
     """ Load dataset unpacks the numpy array with all the gridworld files"""
     data = np.load(filename)
-    return tuple([data['arr_{}'.format(i)] for i in range(4)])
+    return tuple([data["arr_{}".format(i)] for i in range(4)])
 
 
-def generate_n_examples(n,
-                        agent,
-                        config,
-                        seed=0,
-                        other_agents=[],
-                        goals=None,
-                        folder='datasets/'):
+def generate_n_examples(
+    n, agent, config, seed=0, other_agents=[], goals=None, folder="datasets/"
+):
     """Calls generate_example n times to create a dataset of examples of size n.
 
     Returns the same four Numpy arrays as generate_example, except that they now
@@ -138,52 +135,49 @@ def generate_n_examples(n,
     filename = folder + get_filename(n, agent, config, seed)
     if os.path.exists(filename):
         dataset = load_dataset(filename)
-        print('Reusing existing dataset')
+        print("Reusing existing dataset")
         return dataset
     elif not os.path.exists(folder):
         os.mkdir(folder)
 
-    print('Could not find ' + filename)
-    print('Generating {} examples'.format(n))
+    print("Could not find " + filename)
+    print("Generating {} examples".format(n))
     np.random.seed(seed)
     random.seed(seed)
     if goals is None:
-        data = [
-            generate_example(agent, config, other_agents) for _ in range(n)
-        ]
+        data = [generate_example(agent, config, other_agents) for _ in range(n)]
     else:
         assert len(goals) == n
-        data = [
-            generate_example(agent, config, other_agents, r) for r in goals
-        ]
+        data = [generate_example(agent, config, other_agents, r) for r in goals]
 
-    walls, rewards, start_states, labels, num_different = map(np.array,
-                                                              zip(*data))
+    walls, rewards, start_states, labels, num_different = map(np.array, zip(*data))
     if other_agents:
         num_different = np.array(num_different)
-        num_states = (n * config.imsize * config.imsize)
+        num_states = n * config.imsize * config.imsize
         fraction_different = float(np.sum(num_different, axis=0)) / num_states
-        print('Fraction of states where agents choose different actions: ' +
-              str(fraction_different))
+        print(
+            "Fraction of states where agents choose different actions: "
+            + str(fraction_different)
+        )
 
     dataset = walls, rewards, start_states, labels
     save_dataset(filename, dataset)
     return dataset
 
 
-def generate_data_for_planner(num_train,
-                              num_validation,
-                              agent,
-                              config,
-                              other_agents=[]):
+def generate_data_for_planner(
+    num_train, num_validation, agent, config, other_agents=[]
+):
     """Generates training and test data for Gridworld data.
 
     Returns a tuple of two elements, each of which is the return value of a call
     to generate_n_examples)."""
-    train_data = generate_n_examples(num_train, agent, config,
-                                     config.seeds.pop(0), other_agents)
-    validation_data = generate_n_examples(num_validation, agent, config,
-                                          config.seeds.pop(0), other_agents)
+    train_data = generate_n_examples(
+        num_train, agent, config, config.seeds.pop(0), other_agents
+    )
+    validation_data = generate_n_examples(
+        num_validation, agent, config, config.seeds.pop(0), other_agents
+    )
     return train_data, validation_data
 
 
@@ -193,13 +187,14 @@ def generate_data_for_reward(num_trajs, agent, config, other_agents=[]):
     [4/5] Generates test data (reward data) for Step 2 of the algorithm
     """
     walls, rewards, start_states, labels = generate_n_examples(
-        num_trajs, agent, config, config.seeds.pop(0), other_agents)
+        num_trajs, agent, config, config.seeds.pop(0), other_agents
+    )
     goals = parse_rewards_into_goals(rewards)
     walls2, rewards2, start_states2, labels2 = generate_n_examples(
-        num_trajs, agent, config, config.seeds.pop(0), other_agents, goals)
+        num_trajs, agent, config, config.seeds.pop(0), other_agents, goals
+    )
     assert np.array_equal(rewards, rewards2)
-    return (walls, rewards, start_states, labels, walls2, start_states2,
-            labels2)
+    return (walls, rewards, start_states, labels, walls2, start_states2, labels2)
 
 
 def parse_rewards_into_goals(rewards):
@@ -214,51 +209,55 @@ def parse_rewards_into_goals(rewards):
 
 
 def create_agents_from_config(config):
-    agent = create_agent(config.agent, config.gamma, config.beta,
-                         config.num_iters, config.max_delay,
-                         config.hyperbolic_constant, config.calibration_factor)
+    agent = create_agent(
+        config.agent,
+        config.gamma,
+        config.beta,
+        config.num_iters,
+        config.max_delay,
+        config.hyperbolic_constant,
+        config.calibration_factor,
+    )
     other_agents = []
     if config.other_agent is not None:
         other_agent = create_agent(
-            config.other_agent, config.other_gamma, config.other_beta,
-            config.other_num_iters, config.other_max_delay,
-            config.other_hyperbolic_constant, config.other_calibration_factor)
+            config.other_agent,
+            config.other_gamma,
+            config.other_beta,
+            config.other_num_iters,
+            config.other_max_delay,
+            config.other_hyperbolic_constant,
+            config.other_calibration_factor,
+        )
         other_agents.append(other_agent)
 
     return agent, other_agents
 
 
-def create_agent(agent, gamma, beta, num_iters, max_delay, hyperbolic_constant,
-                 calibration):
+def create_agent(
+    agent, gamma, beta, num_iters, max_delay, hyperbolic_constant, calibration
+):
     """Creates the agent specified in config."""
-    if agent == 'optimal':
-        return fast_agents.FastOptimalAgent(
-            gamma=gamma, beta=beta, num_iters=num_iters)
-    elif agent == 'naive':
+    if agent == "optimal":
+        return fast_agents.FastOptimalAgent(gamma=gamma, beta=beta, num_iters=num_iters)
+    elif agent == "naive":
         return fast_agents.FastNaiveTimeDiscountingAgent(
-            max_delay,
-            hyperbolic_constant,
-            gamma=gamma,
-            beta=beta,
-            num_iters=num_iters)
-    elif agent == 'sophisticated':
+            max_delay, hyperbolic_constant, gamma=gamma, beta=beta, num_iters=num_iters
+        )
+    elif agent == "sophisticated":
         return fast_agents.FastSophisticatedTimeDiscountingAgent(
-            max_delay,
-            hyperbolic_constant,
-            gamma=gamma,
-            beta=beta,
-            num_iters=num_iters)
-    elif agent == 'myopic':
+            max_delay, hyperbolic_constant, gamma=gamma, beta=beta, num_iters=num_iters
+        )
+    elif agent == "myopic":
         return fast_agents.FastMyopicAgent(
-            max_delay, gamma=gamma, beta=beta, num_iters=num_iters)
-    elif agent in ['overconfident', 'underconfident']:
-        assert calibration > 1 if agent == 'overconfident' else calibration < 1
+            max_delay, gamma=gamma, beta=beta, num_iters=num_iters
+        )
+    elif agent in ["overconfident", "underconfident"]:
+        assert calibration > 1 if agent == "overconfident" else calibration < 1
         return fast_agents.FastUncalibratedAgent(
-            gamma=gamma,
-            beta=beta,
-            num_iters=num_iters,
-            calibration_factor=calibration)
-    raise ValueError('Invalid agent: ' + agent)
+            gamma=gamma, beta=beta, num_iters=num_iters, calibration_factor=calibration
+        )
+    raise ValueError("Invalid agent: " + agent)
 
 
 # if __name__ == '__main__':

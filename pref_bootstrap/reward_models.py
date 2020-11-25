@@ -1,14 +1,15 @@
 import abc
 
 import jax
+import jax.experimental.stax as jstax
 import jax.numpy as jnp
 import jax.random as jrandom
-import jax.experimental.stax as jstax
 import numpy as np
 
 
 class RewardPrior(abc.ABC):
     """Abstract base class for priors on reward function parameters."""
+
     @abc.abstractmethod
     def log_prior(self, params):
         r"""Compute $\log p({\rm params})$ under this prior."""
@@ -30,6 +31,7 @@ class RewardPrior(abc.ABC):
 
 class FixedGaussianRewardPrior(abc.ABC):
     """Gaussian prior on reward function parameters."""
+
     def __init__(self, *, mean=0.0, std=1.0):
         assert isinstance(mean, float)
         assert isinstance(std, float)
@@ -177,8 +179,7 @@ class JaxRewardModel(RewardModel, abc.ABC):
         out_shape, self._net_params = net_init(rng, (-1, obs_dim))
         self._net_grads = jax.grad(self._net_apply)
         # output shape should just be batch dim, nothing else
-        assert out_shape == (-1, ), "got a weird output shape %s" % (
-            out_shape, )
+        assert out_shape == (-1,), "got a weird output shape %s" % (out_shape,)
 
     @abc.abstractmethod
     def make_stax_model(self):
@@ -202,9 +203,9 @@ class JaxRewardModel(RewardModel, abc.ABC):
         out_vecs = []
         for t in matrix_tups:
             for v in t:
-                new_shape = (v.shape[0], )
+                new_shape = (v.shape[0],)
                 if len(v.shape) > 1:
-                    new_shape = new_shape + (np.prod(v.shape[1:]), )
+                    new_shape = new_shape + (np.prod(v.shape[1:]),)
                 out_vecs.append(v.reshape(new_shape))
         return jnp.concatenate(out_vecs, axis=1)
 
@@ -255,7 +256,8 @@ class MLPRewardModel(JaxRewardModel):
                 JaxRewardModel.__init__().
         """
         assert activation in ["Tanh", "Relu", "Softplus"], (
-            "probably can't handle activation '%s'" % activation)
+            "probably can't handle activation '%s'" % activation
+        )
         self._hiddens = hiddens
         self._activation = activation
         super().__init__(obs_dim, **kwargs)
@@ -278,12 +280,12 @@ def _StaxSqueeze(axis=-1):
         ax = axis
         if ax < 0:
             ax = len(input_shape) + ax
-        assert ax < len(
-            input_shape), "invalid axis %d for %d-dimensional tensor" % (
-                axis, len(input_shape), )
-        assert input_shape[ax] == 1, "axis %d is %d, not 1" % (axis,
-                                                               input_shape[ax])
-        output_shape = input_shape[:ax] + input_shape[ax + 1:]
+        assert ax < len(input_shape), "invalid axis %d for %d-dimensional tensor" % (
+            axis,
+            len(input_shape),
+        )
+        assert input_shape[ax] == 1, "axis %d is %d, not 1" % (axis, input_shape[ax])
+        output_shape = input_shape[:ax] + input_shape[ax + 1 :]
         return output_shape, ()
 
     def apply_fun(params, inputs, **kwargs):

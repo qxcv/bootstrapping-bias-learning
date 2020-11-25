@@ -7,6 +7,7 @@ from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
 
 class PairedCompFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
+
     def init_bias_params(self, rng):
         # sample from log-normal distribution
         rng_in, rng_out = jrandom.split(rng)
@@ -26,6 +27,7 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         def fn(inputs):
             out_values = reward_model.out(inputs)
             return out_values
+
         return fn
 
     def _compute_comparison_diffs(self, data, obs_fn):
@@ -50,18 +52,19 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
 
         # now use precomputed values to evaluate the function at each
         # observation
-        trajectories = data['trajectories']
-        states = trajectories['states']
+        trajectories = data["trajectories"]
+        states = trajectories["states"]
         flat_states = states.flatten()
         flat_fn_vals = all_fn_vals[flat_states]
 
         # shape back into normal shape & sum over time axis
         per_obs_vals = jnp.reshape(
-            flat_fn_vals, states.shape[:2] + all_fn_vals.shape[1:])
+            flat_fn_vals, states.shape[:2] + all_fn_vals.shape[1:]
+        )
         per_traj_vals = jnp.sum(per_obs_vals, axis=1)
 
         # extract comparisons
-        comparisons = data['comparisons']
+        comparisons = data["comparisons"]
         better_traj_ids = comparisons[:, 0]
         worse_traj_ids = comparisons[:, 1]
 
@@ -73,7 +76,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
     def log_likelihood(self, data, reward_model, bias_params):
         assert bias_params.ndim == 0, bias_params.shape
         ret_diffs = self._compute_comparison_diffs(
-            data, self._make_reward_fn(reward_model))
+            data, self._make_reward_fn(reward_model)
+        )
         temp_diffs = bias_params * ret_diffs  # multiplicative temperature
         assert temp_diffs.shape == ret_diffs.shape
         log_likelihoods = jax.nn.log_sigmoid(temp_diffs)
@@ -84,10 +88,10 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         return jnp.mean(log_likelihoods)
 
     def log_likelihood_grad_rew(self, data, reward_model, bias_params):
-        ret_grad_diffs = self._compute_comparison_diffs(
-            data, reward_model.grads)
+        ret_grad_diffs = self._compute_comparison_diffs(data, reward_model.grads)
         ret_diffs = self._compute_comparison_diffs(
-            data, self._make_reward_fn(reward_model))
+            data, self._make_reward_fn(reward_model)
+        )
         grad_temps = bias_params * ret_grad_diffs
         temps = bias_params * ret_diffs
         grad_scales = 1 - jax.nn.sigmoid(temps)
@@ -98,7 +102,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
 
     def log_likelihood_grad_bias(self, data, reward_model, bias_params):
         ret_diffs = self._compute_comparison_diffs(
-            data, self._make_reward_fn(reward_model))
+            data, self._make_reward_fn(reward_model)
+        )
         temps = bias_params * ret_diffs
         all_beta_grads = ret_diffs * (1 - jax.nn.sigmoid(temps))
 

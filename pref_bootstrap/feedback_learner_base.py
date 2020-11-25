@@ -15,6 +15,7 @@ class EnvFeedbackModel(abc.ABC):
     model to compute the log likelihood of some observed data, and to compute
     gradients of the log likelihood with respect to both reward parameters and
     bias parameters."""
+
     def __init__(self, env):
         self.env = env
 

@@ -1,16 +1,18 @@
 import unittest
-from agent_interface import Agent
-from agent_runner import run_agent, evaluate_proxy
-from gridworld.gridworld import GridworldMdp, Direction
-from mdp_interface import Mdp
+
 import numpy as np
-import pdb
+from agent_interface import Agent
+from agent_runner import evaluate_proxy, run_agent
+from gridworld.gridworld import Direction, GridworldMdp
+from mdp_interface import Mdp
+
 
 class DirectionalAgent(Agent):
     """An agent that goes in a specific direction or exits.
 
     This agent only plays grid worlds.
     """
+
     def __init__(self, direction, gamma=1.0):
         Agent.__init__(self, gamma)
         self.default_action = direction
@@ -18,13 +20,10 @@ class DirectionalAgent(Agent):
     def get_action(self, state):
         return self.default_action
 
+
 class TestAgentRunner(unittest.TestCase):
     def test_run_agent(self):
-        grid = ['XXXXXXXXX',
-                'X X2X   X',
-                'X X X   X',
-                'X 4A   9X',
-                'XXXXXXXXX']
+        grid = ["XXXXXXXXX", "X X2X   X", "X X X   X", "X 4A   9X", "XXXXXXXXX"]
 
         # Keep going east to get the 9 reward
         mdp1 = GridworldMdp(grid, living_reward=0)
@@ -68,32 +67,42 @@ class TestAgentRunner(unittest.TestCase):
         self.assertEqual(run_agent(agent4, env4, episode_length=10), trajectory)
 
     def test_evaluate_proxy(self):
-        walls  = [[1, 1, 1, 1, 1],
-                  [1, 0, 0, 0, 1],
-                  [1, 0, 1, 0, 1],
-                  [1, 0, 0, 0, 1],
-                  [1, 1, 1, 1, 1]]
-        reward = [[0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0],
-                  [0, 3, 0, 0, 0],
-                  [0, 0, 0, 1, 0],
-                  [0, 0, 0, 0, 0]]
-        proxy  = [[0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0],
-                  [0, 1, 0, 0.1, 0],
-                  [0, 0, 0, 3, 0],
-                  [0, 0, 0, 0, 0]]
+        walls = [
+            [1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1],
+        ]
+        reward = [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 3, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0],
+        ]
+        proxy = [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 1, 0, 0.1, 0],
+            [0, 0, 0, 3, 0],
+            [0, 0, 0, 0, 0],
+        ]
         start_state = (3, 1)
         walls, reward, proxy = map(np.array, (walls, reward, proxy))
-        pct_reward = evaluate_proxy(walls, start_state, proxy, reward, gamma=0.9, episode_length=10)
+        pct_reward = evaluate_proxy(
+            walls, start_state, proxy, reward, gamma=0.9, episode_length=10
+        )
 
         def geometric(a, r, n):
             return a * (1 - (r ** n)) / (1 - r)
+
         reward_from_proxy = geometric(-0.01, 0.9, 2) + geometric(0.81, 0.9, 8)
         reward_from_truth = geometric(-0.01, 0.9, 3) + 3 * geometric(0.729, 0.9, 7)
 
         expected_pct_reward = reward_from_proxy / reward_from_truth
         self.assertAlmostEqual(pct_reward, expected_pct_reward, places=7)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

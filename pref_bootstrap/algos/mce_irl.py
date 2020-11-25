@@ -110,9 +110,9 @@ def mce_irl_sample(env, n_traj, *, pi=None, R=None):
         _, _, pi = mce_partition_fh(env, R=R)
 
     demos = {
-        'obs': [],
-        'states': [],
-        'acts': [],
+        "obs": [],
+        "states": [],
+        "acts": [],
     }
 
     for _ in range(n_traj):
@@ -133,9 +133,9 @@ def mce_irl_sample(env, n_traj, *, pi=None, R=None):
             traj_acts.append(act)
             t += 1
 
-        demos['obs'].append(traj_obs)
-        demos['states'].append(traj_states)
-        demos['acts'].append(traj_acts)
+        demos["obs"].append(traj_obs)
+        demos["states"].append(traj_states)
+        demos["acts"].append(traj_acts)
 
     # stack so that each tensor in the `demos` dict has leading dimension
     # `n_demos` (and same trailing dimensions as before)
@@ -145,14 +145,15 @@ def mce_irl_sample(env, n_traj, *, pi=None, R=None):
 
 
 def mce_irl(
-        env,
-        optimiser_tuple,
-        rmodel,
-        demo_state_om,
-        linf_eps=1e-3,
-        grad_l2_eps=1e-4,
-        max_iter=None,
-        print_interval=100, ):
+    env,
+    optimiser_tuple,
+    rmodel,
+    demo_state_om,
+    linf_eps=1e-3,
+    grad_l2_eps=1e-4,
+    max_iter=None,
+    print_interval=100,
+):
     r"""Discrete MCE IRL.
     Args:
         env (ModelBasedEnv): a tabular MDP.
@@ -184,13 +185,16 @@ def mce_irl(
     grad_norm = grad_l2_eps + 1
     # number of optimisation steps taken
     t = 0
-    assert demo_state_om.shape == (len(obs_mat), )
+    assert demo_state_om.shape == (len(obs_mat),)
     opt_init, opt_update, opt_get_params = optimiser_tuple
     rew_params = rmodel.get_params()
     opt_state = opt_init(rew_params)
 
-    while (linf_delta > linf_eps and grad_norm > grad_l2_eps and
-           (max_iter is None or t < max_iter)):
+    while (
+        linf_delta > linf_eps
+        and grad_norm > grad_l2_eps
+        and (max_iter is None or t < max_iter)
+    ):
         # get reward predicted for each state by current model, & compute
         # expected # of times each state is visited by soft-optimal policy
         # w.r.t that reward function
@@ -211,9 +215,15 @@ def mce_irl(
         if print_interval is not None and 0 == (t % print_interval):
             logging.info(
                 "Occupancy measure error@iter % 3d: %f (||params||=%f, "
-                "||grad||=%f, ||E[dr/dw]||=%f)" %
-                (t, linf_delta, np.linalg.norm(rew_params),
-                 np.linalg.norm(grad), np.linalg.norm(pol_grad), ))
+                "||grad||=%f, ||E[dr/dw]||=%f)"
+                % (
+                    t,
+                    linf_delta,
+                    np.linalg.norm(rew_params),
+                    np.linalg.norm(grad),
+                    np.linalg.norm(pol_grad),
+                )
+            )
 
         # take a single optimiser step
         opt_state = opt_update(t, grad, opt_state)

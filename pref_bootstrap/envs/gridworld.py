@@ -1,6 +1,7 @@
-from collections import defaultdict
-import numpy as np
 import random
+from collections import defaultdict
+
+import numpy as np
 
 from pref_bootstrap.utils.disjoint_sets import DisjointSets
 
@@ -18,6 +19,7 @@ class GridworldMdpNoR(object):
 
 
     """
+
     def __init__(self, walls, start_state, noise=0):
         self.height = len(walls)
         self.width = len(walls[0])
@@ -49,8 +51,14 @@ class GridworldMdpNoR(object):
         """
         x, y = state
         if self.walls[y][x]:
-            raise ValueError('Cannot be inside a wall!')
-        return [Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.STAY]
+            raise ValueError("Cannot be inside a wall!")
+        return [
+            Direction.NORTH,
+            Direction.SOUTH,
+            Direction.EAST,
+            Direction.WEST,
+            Direction.STAY,
+        ]
 
     def get_reward(self, state, action):
         """Get reward for state, action transition."""
@@ -80,14 +88,16 @@ class GridworldMdpNoR(object):
         successors[next_state] += 1.0 - self.noise
         for direction in Direction.get_adjacent_directions(action):
             next_state = self._attempt_to_move_in_direction(state, direction)
-            successors[next_state] += (self.noise / 2.0)
+            successors[next_state] += self.noise / 2.0
 
         return successors.items()
 
     def get_transition_matrix(self):
         """Returns transition matrix. Very slow."""
         if self.noise != 0:
-            raise AssertionError("Transition matrix does not have computations set when MDP has noise")
+            raise AssertionError(
+                "Transition matrix does not have computations set when MDP has noise"
+            )
         if self.transition_matrix != None:
             return self.transition_matrix
 
@@ -95,7 +105,7 @@ class GridworldMdpNoR(object):
         width = self.width
         num_actions = len(Direction.ALL_DIRECTIONS)
 
-        tran_shape = (width*height, num_actions, width*height)
+        tran_shape = (width * height, num_actions, width * height)
         transition_matrix = np.zeros(tran_shape)
 
         # Init the array to stay action, even if in wall
@@ -111,7 +121,9 @@ class GridworldMdpNoR(object):
                     try:
                         # self.get_actions(self, state) <-- takes state in non-gridworld format
                         # of (x, y)
-                        sa_transitions = self.get_transition_states_and_probs((x, y), action)
+                        sa_transitions = self.get_transition_states_and_probs(
+                            (x, y), action
+                        )
                     except ValueError:
                         sa_transitions = None
 
@@ -162,7 +174,7 @@ class GridworldMdp(GridworldMdpNoR):
         """
         self._assert_valid_grid(grid)
 
-        walls = [[space == 'X' for space in row] for row in grid]
+        walls = [[space == "X" for space in row] for row in grid]
         rewards, start_state = self._get_rewards_and_start_state(grid)
         GridworldMdpNoR.__init__(self, walls, start_state, noise)
         self.rewards = rewards
@@ -184,15 +196,15 @@ class GridworldMdp(GridworldMdpNoR):
         width = len(grid[0])
 
         # Make sure the grid is not ragged
-        assert all(len(row) == width for row in grid), 'Ragged grid'
+        assert all(len(row) == width for row in grid), "Ragged grid"
 
         # Borders must all be walls
         for y in range(height):
-            assert grid[y][0] == 'X', 'Left border must be a wall'
-            assert grid[y][-1] == 'X', 'Right border must be a wall'
+            assert grid[y][0] == "X", "Left border must be a wall"
+            assert grid[y][-1] == "X", "Right border must be a wall"
         for x in range(width):
-            assert grid[0][x] == 'X', 'Top border must be a wall'
-            assert grid[-1][x] == 'X', 'Bottom border must be a wall'
+            assert grid[0][x] == "X", "Top border must be a wall"
+            assert grid[-1][x] == "X", "Bottom border must be a wall"
 
         def is_float(element):
             try:
@@ -203,14 +215,15 @@ class GridworldMdp(GridworldMdpNoR):
         # An element can be 'X' (a wall), ' ' (empty element), 'A' (the agent),
         # or a value v such that float(v) succeeds and returns a float.
         def is_valid_element(element):
-            return element in ['X', ' ', 'A'] or is_float(element)
+            return element in ["X", " ", "A"] or is_float(element)
 
         all_elements = [element for row in grid for element in row]
-        assert all(is_valid_element(element) for element in all_elements), \
-               'Invalid element: must be X, A, blank space, or a number'
-        assert all_elements.count('A') == 1, "'A' must be present exactly once"
+        assert all(
+            is_valid_element(element) for element in all_elements
+        ), "Invalid element: must be X, A, blank space, or a number"
+        assert all_elements.count("A") == 1, "'A' must be present exactly once"
         floats = [element for element in all_elements if is_float(element)]
-        assert len(floats) >= 1, 'There must at least one reward square'
+        assert len(floats) >= 1, "There must at least one reward square"
 
     def _get_rewards_and_start_state(self, grid):
         """Extracts the rewards and start state from grid.
@@ -229,9 +242,9 @@ class GridworldMdp(GridworldMdpNoR):
         start_state = None
         for y in range(len(grid)):
             for x in range(len(grid[0])):
-                if grid[y][x] not in ['X', ' ', 'A']:
+                if grid[y][x] not in ["X", " ", "A"]:
                     rewards[(x, y)] = float(grid[y][x])
-                elif grid[y][x] == 'A':
+                elif grid[y][x] == "A":
                     start_state = (x, y)
         return rewards, start_state
 
@@ -287,19 +300,20 @@ class GridworldMdp(GridworldMdpNoR):
         particular, the living reward and noise will be reset to their default
         values.
         """
+
         def get_elem(x, y):
             wall_elem, reward_elem = walls[y][x], reward[y][x]
             if wall_elem == 1:
-                return 'X'
+                return "X"
             elif reward_elem == 0:
-                return ' '
+                return " "
             else:
                 return reward_elem
 
         height, width = walls.shape
         grid = [[get_elem(x, y) for x in range(width)] for y in range(height)]
         x, y = start_state
-        grid[y][x] = 'A'
+        grid[y][x] = "A"
         return GridworldMdp(grid, noise=noise)
 
     @staticmethod
@@ -322,7 +336,7 @@ class GridworldMdp(GridworldMdpNoR):
         Note that based on the generated walls and start position, it may be
         impossible for the agent to ever reach a reward.
         """
-        grid = [['X'] * width for _ in range(height)]
+        grid = [["X"] * width for _ in range(height)]
         for y in range(1, height - 1):
             for x in range(1, width - 1):
                 if random.random() < pr_reward:
@@ -331,14 +345,14 @@ class GridworldMdp(GridworldMdpNoR):
                     while grid[y][x] == 0:
                         grid[y][x] = random.randint(-9, 9)
                 elif random.random() >= pr_wall:
-                    grid[y][x] = ' '
+                    grid[y][x] = " "
 
         def set_random_position_to(token):
-            x, y = GridworldMdp.get_random_state(grid, ['X', ' '])
+            x, y = GridworldMdp.get_random_state(grid, ["X", " "])
             grid[y][x] = token
 
         set_random_position_to(3)
-        set_random_position_to('A')
+        set_random_position_to("A")
         return GridworldMdp(grid)
 
     @staticmethod
@@ -350,6 +364,7 @@ class GridworldMdp(GridworldMdpNoR):
 
         goals: If not None, dictionary mapping (x, y) positions to rewards.
         """
+
         def get_random_reward():
             result = random.randint(-9, 9)
             while result == 0:
@@ -357,10 +372,10 @@ class GridworldMdp(GridworldMdpNoR):
             return result
 
         def generate_goals(start_state):
-            states = [(x, y) for x in range(1, width-1) for y in range(1, height-1)]
+            states = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1)]
             states.remove(start_state)
             indices = np.random.choice(len(states), num_rewards, replace=False)
-            return {states[i] : get_random_reward() for i in indices}
+            return {states[i]: get_random_reward() for i in indices}
 
         start_state = (width // 2, height // 2)
         if goals is None:
@@ -368,14 +383,13 @@ class GridworldMdp(GridworldMdpNoR):
         required_nonwalls = list(goals.keys())
         required_nonwalls.append(start_state)
 
-        directions = [
-            Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST]
-        grid = [['X'] * width for _ in range(height)]
-        walls = [(x, y) for x in range(1, width-1) for y in range(1, height-1)]
+        directions = [Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST]
+        grid = [["X"] * width for _ in range(height)]
+        walls = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1)]
         dsets = DisjointSets([])
         first_state = required_nonwalls[0]
         for x, y in required_nonwalls:
-            grid[y][x] = ' '
+            grid[y][x] = " "
             walls.remove((x, y))
             dsets.add_singleton((x, y))
 
@@ -383,14 +397,14 @@ class GridworldMdp(GridworldMdpNoR):
         random.shuffle(walls)
         while dsets.get_num_elements() < min_free_spots or not dsets.is_connected():
             x, y = walls.pop()
-            grid[y][x] = ' '
+            grid[y][x] = " "
             dsets.add_singleton((x, y))
             for direction in directions:
                 newx, newy = Direction.move_in_direction((x, y), direction)
                 if dsets.contains((newx, newy)):
                     dsets.union((x, y), (newx, newy))
 
-        grid[height // 2][width // 2] = 'A'
+        grid[height // 2][width // 2] = "A"
         for x, y in goals.keys():
             grid[y][x] = goals[(x, y)]
 
@@ -406,25 +420,26 @@ class GridworldMdp(GridworldMdpNoR):
         -9 cannot be represented with a single character. Such rewards are
         encoded as 'R' (if positive) or 'N' (if negative).
         """
+
         def get_char(x, y):
             if self.walls[y][x]:
-                return 'X'
+                return "X"
             elif (x, y) in self.rewards:
                 reward = self.rewards[(x, y)]
                 # Convert to an int if it would not lose information
                 reward = int(reward) if int(reward) == reward else reward
-                posneg_char = 'R' if reward >= 0 else 'N'
+                posneg_char = "R" if reward >= 0 else "N"
                 reward_str = str(reward)
                 return reward_str if len(reward_str) == 1 else posneg_char
             elif (x, y) == self.get_start_state():
-                return 'A'
+                return "A"
             else:
-                return ' '
+                return " "
 
         def get_row_str(y):
-            return ''.join([get_char(x, y) for x in range(self.width)])
+            return "".join([get_char(x, y) for x in range(self.width)])
 
-        return '\n'.join([get_row_str(y) for y in range(self.height)])
+        return "\n".join([get_row_str(y) for y in range(self.height)])
 
 
 class Direction(object):
@@ -433,13 +448,14 @@ class Direction(object):
     Includes definitions of the actions as well as utility functions for
     manipulating them or applying them.
     """
+
     NORTH = (0, -1)
     SOUTH = (0, 1)
-    EAST  = (1, 0)
-    WEST  = (-1, 0)
+    EAST = (1, 0)
+    WEST = (-1, 0)
     STAY = (0, 0)
     INDEX_TO_DIRECTION = [NORTH, SOUTH, EAST, WEST, STAY]
-    DIRECTION_TO_INDEX = { a:i for i, a in enumerate(INDEX_TO_DIRECTION) }
+    DIRECTION_TO_INDEX = {a: i for i, a in enumerate(INDEX_TO_DIRECTION)}
     ALL_DIRECTIONS = INDEX_TO_DIRECTION
 
     @staticmethod
@@ -464,7 +480,7 @@ class Direction(object):
             return [Direction.EAST, Direction.WEST]
         elif direction in [Direction.EAST, Direction.WEST]:
             return [Direction.NORTH, Direction.SOUTH]
-        raise ValueError('Invalid direction: %s' % direction)
+        raise ValueError("Invalid direction: %s" % direction)
 
     @staticmethod
     def get_number_from_direction(direction):

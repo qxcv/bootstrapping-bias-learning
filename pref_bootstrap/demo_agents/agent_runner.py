@@ -1,6 +1,6 @@
+from pref_bootstrap.demo_agents.fast_agents import FastOptimalAgent
 from pref_bootstrap.envs.gridworld import GridworldMdp
 from pref_bootstrap.envs.mdp_interface import Mdp
-from pref_bootstrap.demo_agents.fast_agents import FastOptimalAgent
 
 
 def run_agent(agent, env, episode_length=float("inf"), determinism=False):
@@ -45,12 +45,14 @@ def get_reward_from_trajectory(trajectory, gamma=0.9):
     return total_reward
 
 
-def evaluate_proxy(walls,
-                   start_state,
-                   proxy_reward,
-                   true_reward,
-                   gamma=0.9,
-                   episode_length=float("inf")):
+def evaluate_proxy(
+    walls,
+    start_state,
+    proxy_reward,
+    true_reward,
+    gamma=0.9,
+    episode_length=float("inf"),
+):
     """Runs agent on a proxy environment for one episode, while collecting true
     reward from a separate environment.
 
@@ -72,8 +74,7 @@ def evaluate_proxy(walls,
     proxy_agent = FastOptimalAgent()
     proxy_agent.set_mdp(true_mdp, proxy_mdp)
     proxy_trajectory = run_agent(proxy_agent, env, episode_length)
-    reward_from_proxy_agent = get_reward_from_trajectory(proxy_trajectory,
-                                                         gamma)
+    reward_from_proxy_agent = get_reward_from_trajectory(proxy_trajectory, gamma)
 
     true_agent = FastOptimalAgent()
     true_agent.set_mdp(true_mdp)

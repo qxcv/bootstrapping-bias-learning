@@ -1,9 +1,10 @@
+import random
 import unittest
 
-from gridworld import GridworldMdp, Direction
+from gridworld import Direction, GridworldMdp
 from mdp_interface import Mdp
 from utils import set_seeds
-import random
+
 
 class TestDirection(unittest.TestCase):
     def test_direction_number_conversion(self):
@@ -22,80 +23,63 @@ class TestDirection(unittest.TestCase):
         # Check that the numbers are 0, 1, ... num_directions - 1
         self.assertEqual(set(all_numbers), set(range(num_directions)))
 
+
 class TestGridworld(unittest.TestCase):
     def setUp(self):
-        self.grid1 = [['X', 'X', 'X', 'X', 'X'],
-                      ['X', ' ', ' ', 'A', 'X'],
-                      ['X', '3', 'X', ' ', 'X'],
-                      ['X', ' ', ' ', '1', 'X'],
-                      ['X', 'X', 'X', 'X', 'X']]
-        self.grid2 = ['XXXXXXXXX',
-                      'X9X X  AX',
-                      'X X X   X',
-                      'X       X',
-                      'XXXXXXXXX']
-        self.grid3 = [['X', 'X', 'X', 'X', 'X'],
-                      ['X', 3.5, 'X', -10, 'X'],
-                      ['X', ' ', '1', ' ', 'X'],
-                      ['X', ' ', ' ', 'A', 'X'],
-                      ['X', 'X', 'X', 'X', 'X']]
+        self.grid1 = [
+            ["X", "X", "X", "X", "X"],
+            ["X", " ", " ", "A", "X"],
+            ["X", "3", "X", " ", "X"],
+            ["X", " ", " ", "1", "X"],
+            ["X", "X", "X", "X", "X"],
+        ]
+        self.grid2 = ["XXXXXXXXX", "X9X X  AX", "X X X   X", "X       X", "XXXXXXXXX"]
+        self.grid3 = [
+            ["X", "X", "X", "X", "X"],
+            ["X", 3.5, "X", -10, "X"],
+            ["X", " ", "1", " ", "X"],
+            ["X", " ", " ", "A", "X"],
+            ["X", "X", "X", "X", "X"],
+        ]
 
         self.mdp1 = GridworldMdp(self.grid1, living_reward=0)
         self.mdp2 = GridworldMdp(self.grid2, noise=0.2)
         self.mdp3 = GridworldMdp(self.grid3)
 
     def test_str(self):
-        expected = '\n'.join([''.join(row) for row in self.grid1])
+        expected = "\n".join(["".join(row) for row in self.grid1])
         self.assertEqual(str(self.mdp1), expected)
-        expected = '\n'.join(self.grid2)
+        expected = "\n".join(self.grid2)
         self.assertEqual(str(self.mdp2), expected)
-        expected = '\n'.join(['XXXXX',
-                              'XRXNX',
-                              'X 1 X',
-                              'X  AX',
-                              'XXXXX'])
+        expected = "\n".join(["XXXXX", "XRXNX", "X 1 X", "X  AX", "XXXXX"])
         self.assertEqual(str(self.mdp3), expected)
 
     def test_constructor_invalid_inputs(self):
         # Height and width must be at least 2.
         with self.assertRaises(AssertionError):
-            mdp = GridworldMdp(['X', 'X', 'X'])
+            mdp = GridworldMdp(["X", "X", "X"])
         with self.assertRaises(AssertionError):
-            mdp = GridworldMdp([['X', 'X', 'X']])
+            mdp = GridworldMdp([["X", "X", "X"]])
 
         with self.assertRaises(AssertionError):
             # Borders must be present.
-            mdp = GridworldMdp(['  A',
-                                '3X ',
-                                '  1'])
+            mdp = GridworldMdp(["  A", "3X ", "  1"])
 
         with self.assertRaises(AssertionError):
             # There can't be more than one agent.
-            mdp = GridworldMdp(['XXXXX',
-                                'XA 3X',
-                                'X3 AX',
-                                'XXXXX'])
+            mdp = GridworldMdp(["XXXXX", "XA 3X", "X3 AX", "XXXXX"])
 
         with self.assertRaises(AssertionError):
             # There must be one agent.
-            mdp = GridworldMdp(['XXXXX',
-                                'X  3X',
-                                'X3  X',
-                                'XXXXX'])
+            mdp = GridworldMdp(["XXXXX", "X  3X", "X3  X", "XXXXX"])
 
         with self.assertRaises(AssertionError):
             # There must be at least one reward.
-            mdp = GridworldMdp(['XXXXX',
-                                'XAX X',
-                                'X   X',
-                                'XXXXX'])
+            mdp = GridworldMdp(["XXXXX", "XAX X", "X   X", "XXXXX"])
 
         with self.assertRaises(AssertionError):
             # B is not a valid element.
-            mdp = GridworldMdp(['XXXXX',
-                                'XB  X',
-                                'X  3X',
-                                'XXXXX'])
+            mdp = GridworldMdp(["XXXXX", "XB  X", "X  3X", "XXXXX"])
 
     def test_start_state(self):
         self.assertEqual(self.mdp1.get_start_state(), (3, 1))
@@ -103,21 +87,18 @@ class TestGridworld(unittest.TestCase):
         self.assertEqual(self.mdp3.get_start_state(), (3, 3))
 
     def test_reward_parsing(self):
-        self.assertEqual(self.mdp1.rewards, {
-            (1, 2): 3,
-            (3, 3): 1
-        })
-        self.assertEqual(self.mdp2.rewards, {
-            (1, 1): 9
-        })
-        self.assertEqual(self.mdp3.rewards, {
-            (1, 1): 3.5,
-            (2, 2): 1,
-            (3, 1): -10
-        })
+        self.assertEqual(self.mdp1.rewards, {(1, 2): 3, (3, 3): 1})
+        self.assertEqual(self.mdp2.rewards, {(1, 1): 9})
+        self.assertEqual(self.mdp3.rewards, {(1, 1): 3.5, (2, 2): 1, (3, 1): -10})
 
     def test_actions(self):
-        a = [Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.STAY]
+        a = [
+            Direction.NORTH,
+            Direction.SOUTH,
+            Direction.EAST,
+            Direction.WEST,
+            Direction.STAY,
+        ]
         all_acts = set(a)
         self.assertEqual(set(Direction.ALL_DIRECTIONS), all_acts)
 
@@ -131,18 +112,9 @@ class TestGridworld(unittest.TestCase):
         self.assertEqual(set(self.mdp3.get_actions((2, 2))), all_acts)
 
     def test_rewards(self):
-        grid1_reward_table = {
-            (3, 3): 1,
-            (1, 2): 3
-        }
-        grid2_reward_table = {
-            (1, 1): 9
-        }
-        grid3_reward_table = {
-            (1, 1): 3.5,
-            (2, 2): 1,
-            (3, 1): -10
-        }
+        grid1_reward_table = {(3, 3): 1, (1, 2): 3}
+        grid2_reward_table = {(1, 1): 9}
+        grid3_reward_table = {(1, 1): 3.5, (2, 2): 1, (3, 1): -10}
         self.check_all_rewards(self.mdp1, grid1_reward_table, 0)
         self.check_all_rewards(self.mdp2, grid2_reward_table, -0.01)
         self.check_all_rewards(self.mdp3, grid3_reward_table, -0.01)
@@ -175,27 +147,13 @@ class TestGridworld(unittest.TestCase):
 
         # Grid 2: Noise of 0.2
         result = set(self.mdp2.get_transition_states_and_probs((1, 2), n))
-        self.assertEqual(result, set([
-            ((1, 1), 0.8),
-            ((1, 2), 0.2)
-        ]))
+        self.assertEqual(result, set([((1, 1), 0.8), ((1, 2), 0.2)]))
         result = set(self.mdp2.get_transition_states_and_probs((6, 2), w))
-        self.assertEqual(result, set([
-            ((5, 2), 0.8),
-            ((6, 1), 0.1),
-            ((6, 3), 0.1)
-        ]))
+        self.assertEqual(result, set([((5, 2), 0.8), ((6, 1), 0.1), ((6, 3), 0.1)]))
         result = set(self.mdp2.get_transition_states_and_probs((7, 3), e))
-        self.assertEqual(result, set([
-            ((7, 3), 0.9),
-            ((7, 2), 0.1)
-        ]))
+        self.assertEqual(result, set([((7, 3), 0.9), ((7, 2), 0.1)]))
         result = set(self.mdp2.get_transition_states_and_probs((5, 1), s))
-        self.assertEqual(result, set([
-            ((5, 2), 0.8),
-            ((5, 1), 0.1),
-            ((6, 1), 0.1)
-        ]))
+        self.assertEqual(result, set([((5, 2), 0.8), ((5, 1), 0.1), ((6, 1), 0.1)]))
         result = self.mdp2.get_transition_states_and_probs((3, 1), n)
         self.assertEqual(set(result), set([((3, 1), 1)]))
         result = self.mdp2.get_transition_states_and_probs((1, 1), stay_action)
@@ -210,12 +168,15 @@ class TestGridworld(unittest.TestCase):
 
     def dfs(self, grid):
         visited = set()
+
         def helper(state):
             if state in visited:
                 return
             visited.add(state)
             for action in grid.get_actions(state):
-                for next_state, _ in grid.get_transition_states_and_probs(state, action):
+                for next_state, _ in grid.get_transition_states_and_probs(
+                    state, action
+                ):
                     helper(next_state)
 
         helper(grid.get_start_state())
@@ -270,10 +231,11 @@ class TestGridworld(unittest.TestCase):
         self.assertEqual(mdp.height, 8)
         self.assertEqual(mdp.width, 8)
         mdp_string = str(mdp)
-        self.assertEqual(mdp_string.count('X'), 28)
-        self.assertEqual(mdp_string.count(' '), 34)
-        self.assertEqual(mdp_string.count('A'), 1)
-        self.assertEqual(mdp_string.count('3'), 1)
+        self.assertEqual(mdp_string.count("X"), 28)
+        self.assertEqual(mdp_string.count(" "), 34)
+        self.assertEqual(mdp_string.count("A"), 1)
+        self.assertEqual(mdp_string.count("3"), 1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
