@@ -4,7 +4,7 @@ import abc
 import numpy as np
 
 from pref_bootstrap.algos.mce_irl import mce_irl_sample
-
+import random
 
 class Expert(abc.ABC):
     """Abstract base class for experts"""
@@ -50,3 +50,47 @@ class PairedComparisonExpert(Expert):
 class MEDemonstratorExpert(Expert):
     def interact(self, n_demos):
         return mce_irl_sample(self.env, n_demos)
+    
+    
+class TopKExpert(Expert): 
+    def __init__(self, *args, temp=.3, K=.2 **kwargs):
+        """
+        inputs
+        temp: How big of an uncertainty do we have (smaller = more uncertainty)
+        K: What percentage of trials will we label as having being optimal? 
+        """
+        
+        assert K > 0.0 and K <= 1.0
+        # Here we take in the K as a percentage.
+        super().__init__(*args, **kwargs)
+        self.temp=temp # how uncertain we are.
+        self.cutoff = 0.0
+        
+    def interact(self, n_demos): 
+        """
+        input: n_demos, a bunch of demos. 
+        output: Label in [1, 0] that each demo is in the top-K best demos. 
+        """
+        reward_mat = self.env.reward_matrix
+        rews = [(np.sum(reward_mat[demo['states']])) for demo in n_demos]
+        rews = np.array(rews)
+        
+        # determine the cutoff
+        assert self.K <= 1.0
+        cutoff = self.K*len(rews) # ASSUME K IS STILL A PERCENTAGE.
+        
+        
+        rews_sorted = np.sort(rews)[::-1]
+        self.cutoff = rews[cutoff] # This is our decision boundary on wether or not 
+                                    # to include the data or not. 
+        labels = np.array([label(y) for y in rews])
+        
+        
+        return labels
+        
+    def label(self, x): 
+        p_topk = 1/(1+np.exp(self.temp*(x-self.cutoff)))
+        return random.random() > p_topk
+        
+        
+        
