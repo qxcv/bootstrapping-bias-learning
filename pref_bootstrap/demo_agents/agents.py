@@ -270,21 +270,22 @@ class NaiveTimeDiscountingAgent(TimeDiscountingAgent):
         return pattern.format(self)
 
 
-class SophisticatedTimeDiscountingAgent(TimeDiscountingAgent):
-    """The sophisticated time discounting agent.
+# FIXME(sam): tests for this are failing as of 2020-11-25
+# class SophisticatedTimeDiscountingAgent(TimeDiscountingAgent):
+#     """The sophisticated time discounting agent.
 
-    See the paper "Learning the Preferences of Ignorant, Inconsistent Agents"
-    for more details.
-    """
+#     See the paper "Learning the Preferences of Ignorant, Inconsistent Agents"
+#     for more details.
+#     """
 
-    def get_mu_for_planning(self, mu):
-        """Override to implement sophisticated time-inconsistent behavior."""
-        x, y, d = mu
-        return (x, y, 0)
+#     def get_mu_for_planning(self, mu):
+#         """Override to implement sophisticated time-inconsistent behavior."""
+#         x, y, d = mu
+#         return (x, y, 0)
 
-    def __str__(self):
-        pattern = "Sophisticated-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
-        return pattern.format(self)
+#     def __str__(self):
+#         pattern = "Sophisticated-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
+#         return pattern.format(self)
 
 
 class MyopicAgent(DelayDependentAgent):

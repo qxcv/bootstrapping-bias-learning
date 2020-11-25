@@ -1,9 +1,8 @@
-import random
 import unittest
 
-from gridworld import Direction, GridworldMdp
-from mdp_interface import Mdp
-from utils import set_seeds
+from pref_bootstrap.envs.gridworld import Direction, GridworldMdp
+from pref_bootstrap.envs.mdp_interface import Mdp
+from pref_bootstrap.utils.utils import set_seeds
 
 
 class TestDirection(unittest.TestCase):

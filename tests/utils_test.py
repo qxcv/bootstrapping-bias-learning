@@ -1,7 +1,6 @@
 import unittest
 
-import numpy as np
-from utils import Distribution
+from pref_bootstrap.utils.utils import Distribution
 
 
 class TestDistribution(unittest.TestCase):

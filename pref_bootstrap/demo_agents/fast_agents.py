@@ -92,77 +92,78 @@ class FastNaiveTimeDiscountingAgent(agents.NaiveTimeDiscountingAgent):
         return pattern.format(self)
 
 
-class FastSophisticatedTimeDiscountingAgent(agents.SophisticatedTimeDiscountingAgent):
-    def compute_values(self):
-        """Computes the values for self.mdp using value iteration.
+# FIXME(sam): tests for this are failing as of 2020-11-25
+# class FastSophisticatedTimeDiscountingAgent(agents.SophisticatedTimeDiscountingAgent):
+#     def compute_values(self):
+#         """Computes the values for self.mdp using value iteration.
 
-        Populates self.values, which is a Numpy array of size height x width.
-        self.values[x,y] is the value of the state (x, y).
-        """
-        k, max_delay = self.discount_constant, self.max_delay
-        (
-            rewards,
-            height,
-            width,
-            living_reward,
-            gamma,
-            delay_noise_info,
-            delay_wall_info,
-        ) = preprocess(self, max_delay)
-        _, _, _, _, _, noise_info, wall_info = preprocess(self)
-        stay_rewards = [rewards / (1.0 + k * d) for d in range(max_delay + 1)]
-        move_rewards = [
-            (rewards + living_reward) / (1.0 + k * d) for d in range(max_delay + 1)
-        ]
-        # For states of the form (x, y, max_delay), the next state after a
-        # timestep would be (x, y, max_delay). For every other state (x, y, d),
-        # the next state is (x, y, d+1). To deal with this nicely, we will keep
-        # a copy of the values for states (x, y, max_delay), so that for any
-        # state (x, y, d), the next state will be present at index (x, y, d+1).
-        # This applies to hyperbolic_rewards, values, and qvalues.
-        stay_rewards.append(stay_rewards[-1])
-        move_rewards.append(move_rewards[-1])
-        stay_rewards = np.stack(stay_rewards, axis=-1)
-        move_rewards = np.stack(move_rewards, axis=-1)
-        hyperbolic_rewards = np.stack([move_rewards] * 4 + [stay_rewards], axis=0)
+#         Populates self.values, which is a Numpy array of size height x width.
+#         self.values[x,y] is the value of the state (x, y).
+#         """
+#         k, max_delay = self.discount_constant, self.max_delay
+#         (
+#             rewards,
+#             height,
+#             width,
+#             living_reward,
+#             gamma,
+#             delay_noise_info,
+#             delay_wall_info,
+#         ) = preprocess(self, max_delay)
+#         _, _, _, _, _, noise_info, wall_info = preprocess(self)
+#         stay_rewards = [rewards / (1.0 + k * d) for d in range(max_delay + 1)]
+#         move_rewards = [
+#             (rewards + living_reward) / (1.0 + k * d) for d in range(max_delay + 1)
+#         ]
+#         # For states of the form (x, y, max_delay), the next state after a
+#         # timestep would be (x, y, max_delay). For every other state (x, y, d),
+#         # the next state is (x, y, d+1). To deal with this nicely, we will keep
+#         # a copy of the values for states (x, y, max_delay), so that for any
+#         # state (x, y, d), the next state will be present at index (x, y, d+1).
+#         # This applies to hyperbolic_rewards, values, and qvalues.
+#         stay_rewards.append(stay_rewards[-1])
+#         move_rewards.append(move_rewards[-1])
+#         stay_rewards = np.stack(stay_rewards, axis=-1)
+#         move_rewards = np.stack(move_rewards, axis=-1)
+#         hyperbolic_rewards = np.stack([move_rewards] * 4 + [stay_rewards], axis=0)
 
-        self.values = np.zeros([width, height, max_delay + 2])
-        for _ in range(self.num_iters):
-            vals = gamma * self.values
+#         self.values = np.zeros([width, height, max_delay + 2])
+#         for _ in range(self.num_iters):
+#             vals = gamma * self.values
 
-            # First compute Q-values for planning to choose actions
-            # TODO(rohinmshah): Should we be using discounted_values[:,:,0]?
-            planning_qvalues = get_next_state_values(
-                vals[:, :, 0], noise_info, wall_info
-            )
-            planning_qvalues += hyperbolic_rewards[:, :, :, 0]
-            actions_chosen = planning_qvalues.argmax(axis=0)
-            onehot_actions = np.eye(5, dtype=bool)[actions_chosen]
-            onehot_actions = np.transpose(onehot_actions, (2, 0, 1))
-            onehot_actions = np.stack([onehot_actions] * (max_delay + 2), axis=-1)
+#             # First compute Q-values for planning to choose actions
+#             # TODO(rohinmshah): Should we be using discounted_values[:,:,0]?
+#             planning_qvalues = get_next_state_values(
+#                 vals[:, :, 0], noise_info, wall_info
+#             )
+#             planning_qvalues += hyperbolic_rewards[:, :, :, 0]
+#             actions_chosen = planning_qvalues.argmax(axis=0)
+#             onehot_actions = np.eye(5, dtype=bool)[actions_chosen]
+#             onehot_actions = np.transpose(onehot_actions, (2, 0, 1))
+#             onehot_actions = np.stack([onehot_actions] * (max_delay + 2), axis=-1)
 
-            # Q(s, a) = R(s, a) + gamma V(s')
-            qvalues = get_next_state_values(
-                vals, delay_noise_info, delay_wall_info, max_delay
-            )
-            qvalues += hyperbolic_rewards
+#             # Q(s, a) = R(s, a) + gamma V(s')
+#             qvalues = get_next_state_values(
+#                 vals, delay_noise_info, delay_wall_info, max_delay
+#             )
+#             qvalues += hyperbolic_rewards
 
-            # For value computation, use the onehot_actions to choose Q-values
-            chosen_qvalues = np.select(
-                [onehot_actions], [qvalues], default=float("-inf")
-            ).max(axis=0)
-            old_values = self.values
-            self.values = np.zeros([width, height, max_delay + 2])
-            self.values[1:-1, 1:-1, :] = chosen_qvalues
-            if converged(old_values, self.values):
-                break
+#             # For value computation, use the onehot_actions to choose Q-values
+#             chosen_qvalues = np.select(
+#                 [onehot_actions], [qvalues], default=float("-inf")
+#             ).max(axis=0)
+#             old_values = self.values
+#             self.values = np.zeros([width, height, max_delay + 2])
+#             self.values[1:-1, 1:-1, :] = chosen_qvalues
+#             if converged(old_values, self.values):
+#                 break
 
-        # Remove the extra copy of the values
-        self.values = self.values[:, :, :-1]
+#         # Remove the extra copy of the values
+#         self.values = self.values[:, :, :-1]
 
-    def __str__(self):
-        pattern = "FastSophisticated-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
-        return pattern.format(self)
+#     def __str__(self):
+#         pattern = "FastSophisticated-maxdelay-{0.max_delay}-discountconst-{0.discount_constant}-gamma-{0.gamma}-beta-{0.beta}-numiters-{0.num_iters}"
+#         return pattern.format(self)
 
 
 class FastMyopicAgent(agents.MyopicAgent):
