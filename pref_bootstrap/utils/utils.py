@@ -2,10 +2,12 @@ import os
 import random
 
 import jax.numpy as jnp
+
 # import matplotlib
 # matplotlib.use("tkagg")
 # import seaborn as sns
 import matplotlib.pyplot as plt
+
 # import tensorflow as tf
 import numpy as np
 
