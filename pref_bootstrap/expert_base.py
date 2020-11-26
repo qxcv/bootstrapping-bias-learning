@@ -60,10 +60,12 @@ class TopKExpert(Expert):
         K: What percentage of trials will we label as having being optimal? 
         """
         
-        assert K > 0.0 and K <= 1.0
+        
         # Here we take in the K as a percentage.
         super().__init__(*args, **kwargs)
         self.temp=temp # how uncertain we are.
+        assert K > 0.0 and K <= 1.0
+        self.K = K
         self.cutoff = 0.0
         
     def interact(self, n_demos): 
@@ -77,7 +79,7 @@ class TopKExpert(Expert):
         
         # determine the cutoff
         assert self.K <= 1.0
-        cutoff = self.K*len(rews) # ASSUME K IS STILL A PERCENTAGE.
+        cutoff = int(self.K*len(rews)) # ASSUME K IS STILL A PERCENTAGE.
         
         
         rews_sorted = np.sort(rews)[::-1]
@@ -85,12 +87,11 @@ class TopKExpert(Expert):
                                     # to include the data or not. 
         labels = np.array([label(y) for y in rews])
         
-        
         return labels
         
     def label(self, x): 
         p_topk = 1/(1+np.exp(self.temp*(x-self.cutoff)))
-        return random.random() > p_topk
+        return int(random.random() > p_topk)
         
         
         

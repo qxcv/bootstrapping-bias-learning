@@ -100,43 +100,33 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         topk = data['topk'] # binary labels
         
         preds = self.predict(params, states)
-        loss_val, params_grad = value_and_grad(self.oss, topk)
+        
+        
+        grad(loss, (0,1))(params['reward'], params['b'], params['temp'])
         
         
         
         
 
     def log_likelihood_grad_rew(self, data, reward_model, bias_params):
-#         ret_grad_diffs = self._compute_comparison_diffs(data, reward_model.grads)
-#         ret_diffs = self._compute_comparison_diffs(
-#             data, self._make_reward_fn(reward_model)
-#         )
-#         grad_temps = bias_params * ret_grad_diffs
-#         temps = bias_params * ret_diffs
-#         grad_scales = 1 - jax.nn.sigmoid(temps)
-#         all_comparison_grads = grad_temps * grad_scales[:, None]
-
-#         # trajectory averaging again
-#         return jnp.mean(all_comparison_grads, axis=0)
 
     def log_likelihood_grad_bias(self, data, reward_model, bias_params):
-#         ret_diffs = self._compute_comparison_diffs(
-#             data, self._make_reward_fn(reward_model)
-#         )
-#         temps = bias_params * ret_diffs
-#         all_beta_grads = ret_diffs * (1 - jax.nn.sigmoid(temps))
 
-#         # again average over trajectories
-#         return jnp.mean(all_beta_grads, axis=0)
+
+    def loss(self, params):
+        preds = predict(params['reward_est'], params['temperature'], params['bias'], self.inputs)
+        label_probs = preds*targets + (1-preds)*(1-targets)
+        return -jnp.sum(jnp.log(label_probs))
+        
+        
+        
     
-    def predict(self, params, states): 
+    def predict(self, reward_est, temperature, bias, states): 
+        
+        """takes in: parameters, """
         flat_states = states.flatten()
-        rew_est = jnp.dot(params['reward_est'], flat_states)
-        
-        
-        
-
-        
-    def sigmoid(self, x): 
-        return 0.5*(njp.tanh(x/2) + 1)
+        rew_est = (reward_est[flat_states]) # hopefully jax can do this, if not...need 1-hot.
+        per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
+        per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
+        return jax.nn.sigmoid(-1*temperature*(per_traj_rew_est-bias))
     
