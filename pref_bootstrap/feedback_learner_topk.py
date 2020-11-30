@@ -98,32 +98,31 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         per_traj_vals = jnp.sum(per_obs_vals, axis=1)
         
         topk = data['topk'] # binary labels
-        
         preds = self.predict(params, states)
         
-        
-        grad(loss, (0,1))(params['reward'], params['b'], params['temp'])
-        
-        
-        
-        
 
-    def log_likelihood_grad_rew(self, data, reward_model, bias_params):
+    def log_likelihood_grad_rew(self,params, data):
+        grads = grad(loss)(params, data)
+        return grads['reward_est']
 
-    def log_likelihood_grad_bias(self, data, reward_model, bias_params):
+    def log_likelihood_grad_bias(self,params,data):
+        grads = grad(loss)(params, data)
+        return grads['b'], grads['temp']
+        
+    def grad_loss(self,params, data): 
+        loss, grads = value_and_grad(loss(params, data))
+        return loss, grads
 
 
-    def loss(self, params):
-        preds = predict(params['reward_est'], params['temperature'], params['bias'], self.inputs)
+    def loss(self, params, inputs):
+        preds = predict(params['reward_est'], params['temperature'], params['bias'], inputs)
         label_probs = preds*targets + (1-preds)*(1-targets)
         return -jnp.sum(jnp.log(label_probs))
         
-        
-        
-    
+
     def predict(self, reward_est, temperature, bias, states): 
         
-        """takes in: parameters, """
+        """takes in: parameters"""
         flat_states = states.flatten()
         rew_est = (reward_est[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
