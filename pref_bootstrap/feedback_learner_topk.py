@@ -6,7 +6,7 @@ from jax import grad, value_and_grad
 from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
 
 
-class PairedCompFeedbackModel(EnvFeedbackModel):
+class TopKFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
 
     def init_bias_params(self, rng):
@@ -14,17 +14,17 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         rng_in, rng_out = jrandom.split(rng)
 
         # TEMP SCALE: 
-        temp_scale = 30
-        min_temp = 10
+        temp_scale = .1
+        min_temp = 0
         params = temp_scale*jrandom.uniform(rng_in, shape=()) + min_temp # Rand between 
         return params, rng_out
 
-#     def create_bias_prior(self, rng):
-#         rng_in, rng_out = jrandom.split(rng)
-#         # FIXME(sam): add a log-normal or gamma prior, and projection function
-#         # that clips to positive numbers (maybe; you might also be able to come
-#         # up with a more sensible parameterisation which does not require that)
-#         return prior, rng_out
+    def create_bias_prior(self, rng):
+        rng_in, rng_out = jrandom.split(rng)
+        # FIXME(sam): add a log-normal or gamma prior, and projection function
+        # that clips to positive numbers (maybe; you might also be able to come
+        # up with a more sensible parameterisation which does not require that)
+        return prior, rng_out
 
     def _make_reward_fn(self, reward_model):
         def fn(inputs):
@@ -74,10 +74,10 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         return loss, grads
 
 
-    def loss(self, params, inputs):
-        preds = predict(params['reward_est'], params['temperature'], params['bias'], inputs)
+    def loss(self, params, inputs, targets):
+        preds = self.predict(params['reward_est'], params['temperature'], params['bias'], inputs)
         label_probs = preds*targets + (1-preds)*(1-targets)
-        return -jnp.sum(jnp.log(label_probs))
+        return -jnp.mean(jnp.log(label_probs+1e-12))
         
     def predict(self, reward_est, temperature, bias, states): 
         
@@ -86,5 +86,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         rew_est = (reward_est[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
         per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
-        return jax.nn.sigmoid(-1*temperature*(per_traj_rew_est-bias))
+        return 1-jax.nn.sigmoid(temperature*(per_traj_rew_est-bias))
+    
+    
+    #TODO write a training function for this. 
     

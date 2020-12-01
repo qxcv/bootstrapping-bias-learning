@@ -74,18 +74,20 @@ class TopKExpert(Expert):
         output: Label in [1, 0] that each demo is in the top-K best demos. 
         """
         reward_mat = self.env.reward_matrix
-        rews = [(np.sum(reward_mat[demo['states']])) for demo in n_demos]
+        rews = [(np.sum(reward_mat[demo])) for demo in n_demos['states']]
         rews = np.array(rews)
+        print(rews)
         
         # determine the cutoff
         assert self.K <= 1.0
-        cutoff = int(self.K*len(rews)) # ASSUME K IS STILL A PERCENTAGE.
+        cutoff = int(self.K*len(rews))
+        print(cutoff)# ASSUME K IS STILL A PERCENTAGE.
         
         
         rews_sorted = np.sort(rews)[::-1]
-        self.cutoff = rews[cutoff] # This is our decision boundary on wether or not 
-                                    # to include the data or not. 
-        labels = np.array([label(y) for y in rews])
+        self.cutoff = rews_sorted[cutoff] # This is our decision boundary on wether or not 
+                                  # to include the data or not. 
+        labels = np.array([self.label(y) for y in rews])
         
         return labels
         
