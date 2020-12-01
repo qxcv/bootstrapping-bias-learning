@@ -75,18 +75,17 @@ class TopKFeedbackModel(EnvFeedbackModel):
 
 
     def loss(self, params, inputs, targets):
-        preds = self.predict(params['reward_est'], params['temperature'], params['bias'], inputs)
+        preds = self.predict(params['reward_est'], params['bias'], inputs)
         label_probs = preds*targets + (1-preds)*(1-targets)
         return -jnp.mean(jnp.log(label_probs+1e-12))
         
-    def predict(self, reward_est, temperature, bias, states): 
-        
+    def predict(self, reward_est, bias, states): 
         """takes in: parameters"""
         flat_states = states.flatten()
         rew_est = (reward_est[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
         per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
-        return 1-jax.nn.sigmoid(temperature*(per_traj_rew_est-bias))
+        return jax.nn.sigmoid((per_traj_rew_est-bias))
     
     
     #TODO write a training function for this. 

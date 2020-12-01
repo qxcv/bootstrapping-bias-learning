@@ -76,24 +76,24 @@ class TopKExpert(Expert):
         reward_mat = self.env.reward_matrix
         rews = [(np.sum(reward_mat[demo])) for demo in n_demos['states']]
         rews = np.array(rews)
-        print(rews)
         
         # determine the cutoff
         assert self.K <= 1.0
         cutoff = int(self.K*len(rews))
-        print(cutoff)# ASSUME K IS STILL A PERCENTAGE.
         
         
         rews_sorted = np.sort(rews)[::-1]
         self.cutoff = rews_sorted[cutoff] # This is our decision boundary on wether or not 
                                   # to include the data or not. 
+        print('cutoff', self.cutoff)
         labels = np.array([self.label(y) for y in rews])
-        
         return labels
         
-    def label(self, x): 
-        p_topk = 1/(1+np.exp(self.temp*(x-self.cutoff)))
-        return int(random.random() > p_topk)
+    def label(self, x):
+        y = self.temp*(x-self.cutoff)
+        sig = 1/(1+np.exp(-y))
+        p_topk = sig
+        return p_topk > random.random()
         
         
         
