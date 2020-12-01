@@ -32,48 +32,6 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
             return out_values
         return fn
 
-    def _compute_comparison_diffs(self, data, obs_fn):
-        """Common pattern for all log likelihood/gradient methods in this class:
-
-        1. Apply a function of observations to each observation in the
-           environment.
-        2. Use that precomputed table of values to look up value of the
-           function for each observation in each supplied trajectory.
-        3. Sum over the time axis, to make obs_fn a function if trajectories
-           rather than just single observations (e.g. computing return from
-           rewards at each time step).
-        4. Using each supplied comparison pair `tau1 >= tau2`, compute
-           `fn(tau1) - fn(tau2)`.
-        5. Return just those differences.
-
-        This same pattern is used to compute both return differences and reward
-        gradient differences."""
-
-        # first compute all values
-        all_fn_vals = obs_fn(self.env.observation_matrix)
-
-        # now use precomputed values to evaluate the function at each
-        # observation
-        trajectories = data["trajectories"]
-        states = trajectories["states"]
-        flat_states = states.flatten()
-        flat_fn_vals = all_fn_vals[flat_states]
-
-        # shape back into normal shape & sum over time axis
-        per_obs_vals = jnp.reshape(
-            flat_fn_vals, states.shape[:2] + all_fn_vals.shape[1:]
-        )
-        per_traj_vals = jnp.sum(per_obs_vals, axis=1)
-
-        # extract comparisons
-        comparisons = data["comparisons"]
-        better_traj_ids = comparisons[:, 0]
-        worse_traj_ids = comparisons[:, 1]
-
-        # now return differences
-        diffs = per_traj_vals[better_traj_ids] - per_traj_vals[worse_traj_ids]
-
-        return diffs
 
     def log_likelihood(self, data, labels, reward_model, bias_params):
 #         assert bias_params.ndim == 0, bias_params.shape
@@ -100,6 +58,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         topk = data['topk'] # binary labels
         preds = self.predict(params, states)
         
+        return topk*jnp.log(preds) + (1-topk)*jnp.log(1-preds)
+        
 
     def log_likelihood_grad_rew(self,params, data):
         grads = grad(loss)(params, data)
@@ -119,7 +79,6 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         label_probs = preds*targets + (1-preds)*(1-targets)
         return -jnp.sum(jnp.log(label_probs))
         
-
     def predict(self, reward_est, temperature, bias, states): 
         
         """takes in: parameters"""

@@ -53,7 +53,7 @@ class MEDemonstratorExpert(Expert):
     
     
 class TopKExpert(Expert): 
-    def __init__(self, *args, temp=.3, K=.2 **kwargs):
+    def __init__(self, *args, temp=.3, K=.2, **kwargs):
         """
         inputs
         temp: How big of an uncertainty do we have (smaller = more uncertainty)
