@@ -62,30 +62,25 @@ class TopKFeedbackModel(EnvFeedbackModel):
         
 
     def log_likelihood_grad_rew(self,params, data):
-        grads = grad(loss)(params, data)
+        grads = grad(self.loss)(params, data['states'])
         return grads['reward_est']
 
     def log_likelihood_grad_bias(self,params,data):
-        grads = grad(loss)(params, data)
+        grads = grad(self.loss)(params, data['states'])
         return grads['b'], grads['temp']
-        
-    def grad_loss(self,params, data): 
-        loss, grads = value_and_grad(loss(params, data))
-        return loss, grads
-
 
     def loss(self, params, inputs, targets):
-        preds = self.predict(params['reward_est'], params['bias'], inputs)
+        preds = self.predict(params['reward_est'], params['bias'], params['temp'], inputs)
         label_probs = preds*targets + (1-preds)*(1-targets)
         return -jnp.mean(jnp.log(label_probs+1e-12))
         
-    def predict(self, reward_est, bias, states): 
+    def predict(self, reward_est, bias, temp, states): 
         """takes in: parameters"""
         flat_states = states.flatten()
         rew_est = (reward_est[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
         per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
-        return jax.nn.sigmoid((per_traj_rew_est-bias))
+        return jax.nn.sigmoid(temp*(per_traj_rew_est-bias))
     
     
     #TODO write a training function for this. 
