@@ -17,7 +17,7 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
     def __init__(self, env):
         super().__init__(env)
         self._bias_prior = priors.BetaPrior(
-            shape=(self.env.obs_dim), alpha=0.5, beta=0.5)
+            shape=(self.env.obs_dim, ), alpha=0.5, beta=0.5)
 
     @property
     def bias_prior(self):
@@ -26,6 +26,9 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
     def init_bias_params(self, rng):
         # WARNING: these bias params are meant to be constrained to 0<=b<=1 (or
         # some other convex approximation of {0,1}).
+        #
+        # TODO(sam): remove init_bias_params here and in other EnvFeedbackModel
+        # subclasses; it should not be necessary any more
         rng_in, rng_out = jrandom.split(rng)
         obs_dim = self.env.obs_dim
         params = jrandom.beta(key=rng_in, a=0.5, b=0.5, shape=(obs_dim, ))
@@ -97,6 +100,7 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
         state_eye = jnp.eye(self.env.n_states)
         empirical_om_flat = state_eye[states_t.flatten()]
         om_t_shape = states_t.shape + (self.env.n_states, )
+        # average over the batch axis
         empirical_om_t = jnp.mean(
             empirical_om_flat.reshape(om_t_shape), axis=0)
         assert empirical_om_t.shape == om_t.shape
@@ -115,9 +119,10 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
         # compute reward gradient in each state
         reward_grads = reward_model.grads(blind_obs_mat)
 
-        empirical_grad_term = jnp.mean(
+        # using jnp.sum(om * <thing>) to take an OM-weighted average of <thing>
+        empirical_grad_term = jnp.sum(
             empirical_om[:, None] * reward_grads, axis=0)
-        pi_grad_term = jnp.mean(om[:, None] * reward_grads, axis=0)
+        pi_grad_term = jnp.sum(om[:, None] * reward_grads, axis=0)
         grads = empirical_grad_term - pi_grad_term
 
         return grads
@@ -142,9 +147,9 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
             jax.partial(blind_rew_grad_fn, bias_params))
         lifted_grads = lifted_blind_rew_grad_fn(self.env.observation_matrix)
 
-        empirical_grad_term = jnp.mean(
+        empirical_grad_term = jnp.sum(
             empirical_om[:, None] * lifted_grads, axis=0)
-        pi_grad_term = jnp.mean(om[:, None] * lifted_grads, axis=0)
+        pi_grad_term = jnp.sum(om[:, None] * lifted_grads, axis=0)
         grads = empirical_grad_term - pi_grad_term
 
         return grads

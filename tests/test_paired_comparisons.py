@@ -43,15 +43,11 @@ def test_fbl_cmp_ll_grad(seed):
     key = jrandom.PRNGKey(seed)
 
     # generate some seeds for environment and reward model
-    key, rmodel_key, env_key, ds_key = jrandom.split(key, num=4)
-
-    def gen_randint(key):
-        return int(jrandom.randint(key, shape=(), minval=0, maxval=2**31 - 1))
-
-    rmodel_seed = gen_randint(rmodel_key)
-    env_seed = gen_randint(env_key)
-    ds_seed = gen_randint(ds_key)
-    del rmodel_key, env_key, ds_key
+    key, inner_key = jrandom.split(key)
+    rmodel_seed, env_seed, ds_seed = map(
+        int,
+        jrandom.randint(inner_key, shape=(3, ), minval=0, maxval=2**31 - 1))
+    del inner_key
 
     # create the environment
     random_gridworld = gridworld.GridworldMdp.generate_random(
