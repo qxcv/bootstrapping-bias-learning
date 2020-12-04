@@ -3,7 +3,6 @@ where the demonstrator is modelled as being 'blind' to some elements of the
 observation vector."""
 import jax
 import jax.numpy as jnp
-import jax.random as jrandom
 
 from pref_bootstrap.algos.mce_irl import mce_occupancy_measures, mce_partition_fh
 from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
