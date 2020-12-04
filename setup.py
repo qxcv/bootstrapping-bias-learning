@@ -27,8 +27,8 @@ setup(
         "seaborn>=0.10.1",
         "pandas>=1.0.5",
         "matplotlib>=3.3.0",
-        "jax>=0.2.5",
-        "jaxlib>=0.1.56",
+        "jax>=0.2.6",
+        "jaxlib>=0.1.57",
         "gym>=0.17.3",
         # these are really dev/test dependencies rather than package deps (if
         # we ever publish this then we can put them in a 'dev' or 'test' extra)

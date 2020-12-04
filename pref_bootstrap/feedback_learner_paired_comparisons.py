@@ -3,6 +3,7 @@ import jax.numpy as jnp
 import jax.random as jrandom
 
 from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
+from pref_bootstrap import priors
 
 
 class PairedCompFeedbackModel(EnvFeedbackModel):
@@ -16,12 +17,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         params = jrandom.gamma(rng_in, 1.0, shape=())
         return params, rng_out
 
-    def create_bias_prior(self, rng):
-        rng_in, rng_out = jrandom.split(rng)
-        # FIXME(sam): add a log-normal or gamma prior, and projection function
-        # that clips to positive numbers (maybe; you might also be able to come
-        # up with a more sensible parameterisation which does not require that)
-        return prior, rng_out
+    def create_bias_prior(self):
+        return priors.ExponentialPrior(shape=(), lam=1.0)
 
     def _make_reward_fn(self, reward_model):
         def fn(inputs):
@@ -70,6 +67,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
 
         # now return differences
         diffs = per_traj_vals[better_traj_ids] - per_traj_vals[worse_traj_ids]
+        expected_shape = (len(comparisons), ) + all_fn_vals[0].shape
+        assert diffs.shape == expected_shape, (diffs.shape, expected_shape)
 
         return diffs
 
@@ -92,8 +91,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         ret_diffs = self._compute_comparison_diffs(
             data, self._make_reward_fn(reward_model)
         )
-        grad_temps = bias_params * ret_grad_diffs
         temps = bias_params * ret_diffs
+        grad_temps = bias_params * ret_grad_diffs
         grad_scales = 1 - jax.nn.sigmoid(temps)
         all_comparison_grads = grad_temps * grad_scales[:, None]
 
