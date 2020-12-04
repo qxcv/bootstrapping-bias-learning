@@ -23,17 +23,6 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
     def bias_prior(self):
         return self._bias_prior
 
-    def init_bias_params(self, rng):
-        # WARNING: these bias params are meant to be constrained to 0<=b<=1 (or
-        # some other convex approximation of {0,1}).
-        #
-        # TODO(sam): remove init_bias_params here and in other EnvFeedbackModel
-        # subclasses; it should not be necessary any more
-        rng_in, rng_out = jrandom.split(rng)
-        obs_dim = self.env.obs_dim
-        params = jrandom.beta(key=rng_in, a=0.5, b=0.5, shape=(obs_dim, ))
-        return rng_out, params
-
     def log_likelihood(self, data, reward_model, bias_params):
         # expected log likelihood of some trajectories under the current reward
         # model

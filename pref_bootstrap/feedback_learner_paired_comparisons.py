@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-import jax.random as jrandom
 
 from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
 from pref_bootstrap import priors
@@ -11,14 +10,6 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
     def __init__(self, env):
         super().__init__(env)
         self._bias_prior = priors.ExponentialPrior(shape=(), lam=1.0)
-
-    def init_bias_params(self, rng):
-        # sample from log-normal distribution
-        rng_in, rng_out = jrandom.split(rng)
-        # I believe the sole parameter here is the 'alpha' parameter for the
-        # distribution
-        params = jrandom.gamma(rng_in, 1.0, shape=())
-        return rng_out, params
 
     @property
     def bias_prior(self):
