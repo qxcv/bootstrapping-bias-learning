@@ -1,4 +1,4 @@
-import jax
+aimport jax
 import jax.numpy as jnp
 import jax.random as jrandom
 from jax import grad, value_and_grad
