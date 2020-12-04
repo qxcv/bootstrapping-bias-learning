@@ -8,6 +8,9 @@ from pref_bootstrap import priors
 
 class PairedCompFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
+    def __init__(self, env):
+        super().__init__(env)
+        self._bias_prior = priors.ExponentialPrior(shape=(), lam=1.0)
 
     def init_bias_params(self, rng):
         # sample from log-normal distribution
@@ -15,10 +18,11 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         # I believe the sole parameter here is the 'alpha' parameter for the
         # distribution
         params = jrandom.gamma(rng_in, 1.0, shape=())
-        return params, rng_out
+        return rng_out, params
 
-    def create_bias_prior(self):
-        return priors.ExponentialPrior(shape=(), lam=1.0)
+    @property
+    def bias_prior(self):
+        return self._bias_prior
 
     def _make_reward_fn(self, reward_model):
         def fn(inputs):

@@ -61,8 +61,7 @@ def test_fbl_cmp_ll_grad(seed):
 
     # create the feedback model, reward model, etc.
     fbm = fbl_cmp.PairedCompFeedbackModel(env)
-    bias_prior = fbm.create_bias_prior()
-    key, bias_params = bias_prior.sample(key)
+    key, bias_params = fbm.bias_prior.sample(key)
     rmodel = rmodels.LinearRewardModel(env.obs_dim, seed=rmodel_seed)
     rmodel_params = rmodel.get_params()
 
