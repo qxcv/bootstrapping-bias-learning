@@ -27,13 +27,10 @@ def test_fbl_cmp_ll_grad(seed):
     random_gridworld = gridworld.GridworldMdp.generate_random(
         4, 4, 0.2, 0.1, seed=env_seed)
     env = mdp_interface.GridworldEnvWrapper(
-        # random_gridworld, random_gridworld.height + random_gridworld.width)
-        # XXX: remove the next line
-        random_gridworld, random_gridworld.height + random_gridworld.width + 1)
+        random_gridworld, random_gridworld.height + random_gridworld.width)
 
     # create the feedback model, reward model, etc.
     fbm_irl = fbl_blind_irl.BlindIRLFeedbackModel(env)
-    # FIXME(sam): this doesn't work, and I'm not sure why
     key, bias_params = fbm_irl.bias_prior.sample(key)
     rmodel = rmodels.LinearRewardModel(env.obs_dim, seed=rmodel_seed)
     rmodel_params = rmodel.get_params()
