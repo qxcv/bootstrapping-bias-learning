@@ -317,12 +317,13 @@ class GridworldMdp(GridworldMdpNoR):
         return GridworldMdp(grid, noise=noise)
 
     @staticmethod
-    def get_random_state(grid, accepted_tokens):
+    def get_random_state(grid, accepted_tokens, rng=None):
+        rng = random if rng is None else rng
         height, width = len(grid), len(grid[0])
         current_val = None
         while current_val not in accepted_tokens:
-            y = random.randint(1, height - 2)
-            x = random.randint(1, width - 2)
+            y = rng.randint(1, height - 2)
+            x = rng.randint(1, width - 2)
             current_val = grid[y][x]
         return x, y
 
@@ -330,25 +331,26 @@ class GridworldMdp(GridworldMdpNoR):
         return GridworldMdpNoR(self.walls, self.start_state, self.noise)
 
     @staticmethod
-    def generate_random(height, width, pr_wall, pr_reward):
+    def generate_random(height, width, pr_wall, pr_reward, seed=None):
         """Generates a random instance of a Gridworld.
 
         Note that based on the generated walls and start position, it may be
         impossible for the agent to ever reach a reward.
         """
+        rng = random.Random(seed)
         grid = [["X"] * width for _ in range(height)]
         for y in range(1, height - 1):
             for x in range(1, width - 1):
-                if random.random() < pr_reward:
-                    grid[y][x] = random.randint(-9, 9)
+                if rng.random() < pr_reward:
+                    grid[y][x] = rng.randint(-9, 9)
                     # Don't allow 0 rewards
                     while grid[y][x] == 0:
-                        grid[y][x] = random.randint(-9, 9)
-                elif random.random() >= pr_wall:
+                        grid[y][x] = rng.randint(-9, 9)
+                elif rng.random() >= pr_wall:
                     grid[y][x] = " "
 
         def set_random_position_to(token):
-            x, y = GridworldMdp.get_random_state(grid, ["X", " "])
+            x, y = GridworldMdp.get_random_state(grid, ["X", " "], rng=rng)
             grid[y][x] = token
 
         set_random_position_to(3)

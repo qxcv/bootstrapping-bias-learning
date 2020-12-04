@@ -734,14 +734,14 @@ def numeric_grad(fn, base_vec, eps=1e-5):
 
         # increase/decrease element at this index
         above = base_vec_np.copy()
-        above[idx] += eps / 2
+        above[idx] += eps
         below = base_vec_np.copy()
-        below[idx] -= eps / 2
+        below[idx] -= eps
 
         # now evaluate & approximate
         val_below = float(fn(below).item())
         val_above = float(fn(above).item())
-        grad_guess = (val_above - val_below) / eps
+        grad_guess = (val_above - val_below) / (2 * eps)
         out_grad[idx] = float(grad_guess)
 
     return out_grad

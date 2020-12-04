@@ -19,15 +19,15 @@ class EnvFeedbackModel(abc.ABC):
     def __init__(self, env):
         self.env = env
 
-    @abc.abstractmethod
     def init_bias_params(self, rng):
         """Generate a random set of bias model parameters for this feedback
         modality in this environment."""
+        return self.bias_prior.sample(rng)
 
+    @property
     @abc.abstractmethod
-    def create_bias_prior(self, rng):
-        """Similar to `create_rew_prior`, this method generates a probability
-        distribution representing a prior over bias parameters."""
+    def bias_prior(self):
+        """Prior for the bias parameters."""
 
     @abc.abstractmethod
     def log_likelihood(self, data, reward_model, bias_params):
