@@ -1,23 +1,22 @@
-aimport jax
+import jax
 import jax.numpy as jnp
 import jax.random as jrandom
 from jax import grad, value_and_grad
 
 from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
 
+from pref_bootstrap import priors
+
 
 class TopKFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
-
-    def init_bias_params(self, rng):
-        # sample from log-normal distribution
-        rng_in, rng_out = jrandom.split(rng)
-
-        # TEMP SCALE: 
-        temp_scale = .1
-        min_temp = 0
-        params = temp_scale*jrandom.uniform(rng_in, shape=()) + min_temp # Rand between 
-        return params, rng_out
+    def __init__(self, env):
+        super().__init__(env)
+        self._bias_prior = priors.ExponentialPrior(shape=(2,), lam=(4.0))
+    
+    @property
+    def bias_prior(self):
+        return self._bias_prior    
 
     def create_bias_prior(self, rng):
         rng_in, rng_out = jrandom.split(rng)
@@ -33,55 +32,36 @@ class TopKFeedbackModel(EnvFeedbackModel):
         return fn
 
 
-    def log_likelihood(self, data, labels, reward_model, bias_params):
-#         assert bias_params.ndim == 0, bias_params.shape
-#         ret_diffs = self._compute_comparison_diffs(
-#             data, self._make_reward_fn(reward_model)
-#         )
-#         temp_diffs = bias_params * ret_diffs  # multiplicative temperature
-#         assert temp_diffs.shape == ret_diffs.shape
-#         log_likelihoods = jax.nn.log_sigmoid(temp_diffs)
-
-#         # average over trajectories (i.e. expected log likelihood, with
-#         # expectation taken w.r.t. empirical distribution and log likelihood
-#         # taken w.r.t. our model)
-#         return jnp.mean(log_likelihoods)
-        all_rew_vals = obs_fn(self.env.observation_matrix)
-        traj = data['trajectories']
-        states = traj['states']
-        flat_states = states.flatten()
-        flat_fn_vals = all_fn_vals[flat_states]
-        
-        per_obs_vals = jnp.reshape(flat_fn_vals, states.shape[:2] + all_fn_vals.shape[1:])
-        per_traj_vals = jnp.sum(per_obs_vals, axis=1)
-        
-        topk = data['topk'] # binary labels
-        preds = self.predict(params, states)
-        
-        return topk*jnp.log(preds) + (1-topk)*jnp.log(1-preds)
+    def log_likelihood(self, data, reward_model, bias):
+        reward_model = reward_model.get_params()
+        return self.loss(bias, reward_model, data)
         
 
-    def log_likelihood_grad_rew(self,params, data):
-        grads = grad(self.loss)(params, data['states'])
-        return grads['reward_est']
+    def log_likelihood_grad_rew(self, data, reward_model, bias_params):
+        reward_model = reward_model.get_params()
+        grads = grad(self.loss, 1)(bias_params, reward_model, data)
+        return grads
 
-    def log_likelihood_grad_bias(self,params,data):
-        grads = grad(self.loss)(params, data['states'])
-        return grads['b'], grads['temp']
+    def log_likelihood_grad_bias(self, data, reward_model, bias_params):
+        reward_model = reward_model.get_params()
+        grads = grad(self.loss)(bias_params, reward_model, data)
+        return grads
 
-    def loss(self, params, inputs, targets):
-        preds = self.predict(params['reward_est'], params['bias'], params['temp'], inputs)
+    def loss(self, params, rmodel, data):
+        targets = data['labels']
+        inputs = data['trajectories']
+        preds = self.predict(rmodel, params, inputs)
         label_probs = preds*targets + (1-preds)*(1-targets)
         return -jnp.mean(jnp.log(label_probs+1e-12))
         
-    def predict(self, reward_est, bias, temp, states): 
+    def predict(self, rmodel, params, states): 
         """takes in: parameters"""
         flat_states = states.flatten()
-        rew_est = (reward_est[flat_states]) # hopefully jax can do this, if not...need 1-hot.
+        all_fn_values = rmodel #(self.env.observation_matrix)
+        rew_est = (all_fn_values[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
         per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
-        return jax.nn.sigmoid(temp*(per_traj_rew_est-bias))
-    
+        return jax.nn.sigmoid(params[0]*(per_traj_rew_est-params[1]))
     
     #TODO write a training function for this. 
     
