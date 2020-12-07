@@ -120,3 +120,6 @@ ENV/
 
 # emacs
 .#*
+
+# images
+/images*

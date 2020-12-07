@@ -52,7 +52,12 @@ class TopKFeedbackModel(EnvFeedbackModel):
         inputs = data['trajectories']
         preds = self.predict(rmodel, params, inputs)
         label_probs = preds*targets + (1-preds)*(1-targets)
-        return -jnp.mean(jnp.log(label_probs+1e-12))
+        return jnp.mean(jnp.log(label_probs+1e-12))
+    
+    def normal_grad(self, data, reward_model, bias_params):
+        reward_model = reward_model.get_params()
+        grads = grad(self.loss, (0, 1))(bias_params, reward_model, data)
+        return grads
         
     def predict(self, rmodel, params, states): 
         """takes in: parameters"""
