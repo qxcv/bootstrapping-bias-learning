@@ -140,3 +140,46 @@ class BetaPrior(Prior):
         key, inner_key = jrandom.split(key)
         vec = jrandom.beta(key=key, a=self.alpha, b=self.beta, shape=self.shape)
         return key, vec
+
+    
+class MixedPrior(Prior): 
+    """
+    For Sean feedback learner. 
+    
+    The first parameter is the temperature. This has an exp. prior
+    The second param is the cutoff, which has a gaussian prior.
+    
+    """
+    def __init__(self, lam, mean, std): 
+        self.mean = jnp.float64(mean)
+        self.std = jnp.float64(std)
+        self.shape = 1
+        self.lam = lam
+        self.p1 = ExponentialPrior((self.shape,), lam=lam)
+        self.p2 = FixedGaussianPrior((self.shape,), mean=12., std=6.)
+        
+        
+    def log_prior(self, params):
+        return self.p1.log_prior(params) + self.p2.log_prior(params)
+    
+    def log_prior_grad(self, params): 
+        return jnp.zeros_like(jnp.concatenate([jnp.expand_dims(self.p1.log_prior_grad(params[0]), axis=0), 
+                               jnp.expand_dims(self.p1.log_prior_grad(params[1]), axis=0)]))
+    
+    def in_support(self, params): 
+        return jnp.concatenate([jnp.expand_dims(self.p1.in_support(params[0]), axis=0), 
+                               jnp.expand_dims(self.p1.in_support(params[1]), axis=0)])
+    
+    def project_to_support(self, params):
+        return jnp.concatenate([jnp.expand_dims(self.p1.project_to_support(params[0]), axis=0), 
+                               jnp.expand_dims(self.p1.project_to_support(params[1]), axis=0)])
+    
+    def sample(self, key): 
+        k, v1 =self.p1.sample(key)
+        k, v2 = self.p2.sample(k)
+        vec = jnp.concatenate([
+            v1, v2
+        ])
+        print('sampledvec', vec)
+        return k, vec
+    

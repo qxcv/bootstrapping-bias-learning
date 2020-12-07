@@ -5,6 +5,8 @@ import numpy as np
 
 from pref_bootstrap.algos.mce_irl import mce_irl_sample
 import random
+import jax
+import jax.numpy as jnp
 
 class Expert(abc.ABC):
     """Abstract base class for experts"""
@@ -68,14 +70,18 @@ class TopKExpert(Expert):
         self.K = K
         self.cutoff = 0.0
         
-    def interact(self, n_demos): 
+    def interact(self, n_demos, rmodel): 
         """
         input: n_demos, a bunch of demos. 
         output: Label in [1, 0] that each demo is in the top-K best demos. 
         """
-        reward_mat = self.env.reward_matrix
-        rews = [(np.sum(reward_mat[demo])) for demo in n_demos['states']]
-        rews = np.array(rews)
+        states = n_demos['states']
+        flat_states = states.flatten()
+        all_fn_values = rmodel.get_params() ##(self.env.observation_matrix)
+        rew_est = (all_fn_values[flat_states]) # hopefully jax can do this, if not...need 1-hot.
+        per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
+        per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
+        rews = per_traj_rew_est
         
         # determine the cutoff
         assert self.K <= 1.0
@@ -91,7 +97,7 @@ class TopKExpert(Expert):
         
     def label(self, x):
         y = self.temp*(x-self.cutoff)
-        sig = 1/(1+np.exp(-y))
+        sig = jax.nn.sigmoid(y)
         p_topk = sig
         return p_topk > random.random()
         
