@@ -50,3 +50,25 @@ class PairedComparisonExpert(Expert):
 class MEDemonstratorExpert(Expert):
     def interact(self, n_demos):
         return mce_irl_sample(self.env, n_demos)
+
+class ScalarFeedbackExpert(Expert):
+    """Gaussisan-corrupted function"""
+    def __init__(self, *args, gauss_mean= 0.0, gauss_std=1.0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gauss_mean = gauss_mean
+        self.gauss_std = gauss_std
+    
+    def interact(self, traj):
+        """Corrupt each observation with Gaussian Noise"""
+        assert isinstance(traj, dict) and 'states' in traj
+        reward_mat = self.env.reward_matrix
+        # rewards = np.sum(reward_mat[traj['states']], axis=1)
+        rewards = reward_mat[traj['states']]
+        # print(rewards.shape)
+        # rewards = rewards.reshape((rewards.shape[0], 1))
+        norm_rew = np.random.normal(loc=self.gauss_mean, scale=self.gauss_std, size=rewards.shape)
+        scalar_feedback = rewards + norm_rew
+        return {
+        'trajectories': traj,
+        'corrupted_rewards': scalar_feedback,
+        }
