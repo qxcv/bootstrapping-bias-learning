@@ -44,7 +44,7 @@ class TopKFeedbackModel(EnvFeedbackModel):
 
     def log_likelihood_grad_bias(self, data, reward_model, bias_params):
         reward_model = reward_model.get_params()
-        grads = grad(self.loss)(bias_params, reward_model, data)
+        grads = grad(self.loss, 0)(bias_params, reward_model, data)
         return grads
 
     def loss(self, params, rmodel, data):
