@@ -56,8 +56,8 @@ class TopKFeedbackModel(EnvFeedbackModel):
     
     def normal_grad(self, data, reward_model, bias_params):
         reward_model = reward_model.get_params()
-        grads = grad(self.loss, (0, 1))(bias_params, reward_model, data)
-        return grads
+        loss, grads = value_and_grad(self.loss, (0, 1))(bias_params, reward_model, data)
+        return loss, grads
         
     def predict(self, rmodel, params, states): 
         """takes in: parameters"""
