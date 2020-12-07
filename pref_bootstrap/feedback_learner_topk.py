@@ -14,7 +14,7 @@ class TopKFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
     def __init__(self, env):
         super().__init__(env)
-        self._bias_prior = priors.MixedPrior(lam=(3.0), mean=15, std=6.0)
+        self._bias_prior = priors.MixedPrior(lam=(1.0), mean=15, std=6.0)
     
     @property
     def bias_prior(self):

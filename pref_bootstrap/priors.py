@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 import jax.random as jrandom
 import numpy as np
-
+from jax import grad
 
 class Prior(abc.ABC):
     """Base class for priors on reward parameters and bias model parameters."""
@@ -104,6 +104,32 @@ class ExponentialPrior(Prior):
         vec = jrandom.exponential(inner_key, shape=self.shape) / self.lam
         return key, vec
 
+    
+class LogNormalPrior(Prior): 
+    def __init__(self, shape, mean, std): 
+        
+        self.mu = mean
+        self.shape = shape
+        self.std = std
+        
+    def log_prior(self, params): 
+        return -jnp.log(params - self.mu)**2/(2*self.std**2) - params*self.std*jnp.sqrt(2*jnp.pi)
+    
+    def log_prior_grad(self, params):
+        return grad(self.log_prior)(params)
+    
+    def in_support(self, weights):
+        return jnp.all(weights >= 0)
+
+    def project_to_support(self, weights):
+        return jnp.maximum(weights, 0.0)
+    
+    def sample(self, key):
+        key, inner_key = jrandom.split(key)
+        vec = jnp.exp(jrandom.normal(key, shape=self.shape)*self.std + self.mu)
+        
+        return key, vec
+    
 
 class BetaPrior(Prior):
     """Beta prior. (density is x^(alpha-1) * (1-x)^(beta-1)) / B(alpha,beta),
@@ -155,7 +181,7 @@ class MixedPrior(Prior):
         self.std = jnp.float64(std)
         self.shape = 1
         self.lam = lam
-        self.p1 = ExponentialPrior((self.shape,), lam=lam)
+        self.p1 = LogNormalPrior((self.shape,), mean=0., std=1)
         self.p2 = FixedGaussianPrior((self.shape,), mean=12., std=6.)
         
         
@@ -163,16 +189,16 @@ class MixedPrior(Prior):
         return self.p1.log_prior(params) + self.p2.log_prior(params)
     
     def log_prior_grad(self, params): 
-        return jnp.zeros_like(jnp.concatenate([jnp.expand_dims(self.p1.log_prior_grad(params[0]), axis=0), 
-                               jnp.expand_dims(self.p1.log_prior_grad(params[1]), axis=0)]))
+        return (jnp.concatenate([jnp.expand_dims(self.p1.log_prior_grad(params[0]), axis=0), 
+                               jnp.expand_dims(self.p2.log_prior_grad(params[1]), axis=0)]))
     
     def in_support(self, params): 
         return jnp.concatenate([jnp.expand_dims(self.p1.in_support(params[0]), axis=0), 
-                               jnp.expand_dims(self.p1.in_support(params[1]), axis=0)])
+                               jnp.expand_dims(self.p2.in_support(params[1]), axis=0)])
     
     def project_to_support(self, params):
         return jnp.concatenate([jnp.expand_dims(self.p1.project_to_support(params[0]), axis=0), 
-                               jnp.expand_dims(self.p1.project_to_support(params[1]), axis=0)])
+                               jnp.expand_dims(self.p2.project_to_support(params[1]), axis=0)])
     
     def sample(self, key): 
         k, v1 =self.p1.sample(key)
