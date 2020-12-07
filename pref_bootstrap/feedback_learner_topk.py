@@ -7,6 +7,8 @@ from pref_bootstrap.feedback_learner_base import EnvFeedbackModel
 
 from pref_bootstrap import priors
 
+from jax import jit
+
 
 class TopKFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""

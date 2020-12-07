@@ -123,3 +123,8 @@ ENV/
 
 # images
 /images*
+
+# results dir
+/results*
+
+*multi_learn_old*
