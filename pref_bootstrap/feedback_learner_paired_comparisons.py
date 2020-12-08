@@ -9,7 +9,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
     def __init__(self, env):
         super().__init__(env)
-        self._bias_prior = priors.ExponentialPrior(shape=(), lam=1.0)
+        #self._bias_prior = priors.ExponentialPrior(shape=(), lam=1.0)
+        self._bias_prior = priors.LogNormalPrior(shape=(), mean=0, std=.25)
 
     @property
     def bias_prior(self):
