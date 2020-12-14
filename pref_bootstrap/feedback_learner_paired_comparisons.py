@@ -10,7 +10,7 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
     def __init__(self, env):
         super().__init__(env)
         #self._bias_prior = priors.ExponentialPrior(shape=(), lam=1.0)
-        self._bias_prior = priors.LogNormalPrior(shape=(), mean=0, std=.25)
+        self._bias_prior = priors.FixedGaussianPrior(shape=(), mean=0, std=.5)
 
     @property
     def bias_prior(self):
@@ -20,7 +20,7 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
         def fn(inputs):
             out_values = reward_model.out(inputs)
             return out_values
-
+            
         return fn
 
     def _compute_comparison_diffs(self, data, obs_fn):
@@ -70,6 +70,8 @@ class PairedCompFeedbackModel(EnvFeedbackModel):
 
     def log_likelihood(self, data, reward_model, bias_params):
         assert bias_params.ndim == 0, bias_params.shape
+        
+        reward_model.set
         ret_diffs = self._compute_comparison_diffs(
             data, self._make_reward_fn(reward_model)
         )
