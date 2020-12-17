@@ -52,6 +52,7 @@ class PairedComparisonExpert(Expert):
 class MEDemonstratorExpert(Expert):
     def interact(self, n_demos):
         return mce_irl_sample(self.env, n_demos)
+
     
     
 class TopKExpert(Expert): 
@@ -109,7 +110,6 @@ class ScalarFeedbackExpert(Expert):
         super().__init__(*args, **kwargs)
         self.gauss_mean = gauss_mean
         self.gauss_std = gauss_std
-
     def interact(self, traj):
         """Corrupt each observation with Gaussian Noise"""
         assert isinstance(traj, dict) and 'states' in traj

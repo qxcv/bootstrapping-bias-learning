@@ -36,7 +36,11 @@ class ScalarFeedbackModel(EnvFeedbackModel):
         ll = ((-1 * amount_of_samples)/2) * np.log(2 * np.pi) - ((-1 * amount_of_samples)/2) * np.log(bias_params[1]) - \
             (1/(2* bias_params[1])) * np.sum((samples - re_vals - bias_params[0])**2)
         return ll
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> b434aef0cfbd7dda331807081dff8ca3894bf00f
     def log_likelihood_grad_rew(self, data, reward_model, bias_params):
         """Compute gradient of log likelihood of human data with respect to
         reward parameters only."""
@@ -51,8 +55,12 @@ class ScalarFeedbackModel(EnvFeedbackModel):
         grad_rew = np.zeros(self.env.obs_dim)
         for i in range(amount_of_samples):
             grad_rew += obs[i] * (samples[i] - re_vals[i] - bias_params[0])
+<<<<<<< HEAD
         grad_rew *= 1/(bias_params[1]+1e-10)
         grad_rew/=amount_of_samples
+=======
+        grad_rew *= 1/(bias_params[1])
+>>>>>>> b434aef0cfbd7dda331807081dff8ca3894bf00f
         return grad_rew
 
     def log_likelihood_grad_bias(self, data, reward_model, bias_params):
@@ -66,5 +74,9 @@ class ScalarFeedbackModel(EnvFeedbackModel):
         mu_grad = (1/bias_params[1]) * np.sum((samples - re_vals - bias_params[0])**2)
         sigma_grad = (1/(2* bias_params[1])) * ((-1 * amount_of_samples) + (1/bias_params[1]) *\
             np.sum((samples - re_vals - bias_params[0])**2))
+<<<<<<< HEAD
         
         return np.array([mu_grad/amount_of_samples, sigma_grad/amount_of_samples])
+=======
+        return np.array([mu_grad, sigma_grad])
+>>>>>>> b434aef0cfbd7dda331807081dff8ca3894bf00f
