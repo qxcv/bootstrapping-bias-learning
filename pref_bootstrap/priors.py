@@ -176,29 +176,31 @@ class MixedPrior(Prior):
     The second param is the cutoff, which has a gaussian prior.
     
     """
-    def __init__(self, lam, mean, std): 
-        self.mean = jnp.float64(mean)
-        self.std = jnp.float64(std)
+    def __init__(self, shape1, mean1, std1 , mean2, std2): 
+        self.mean1 = jnp.float64(mean1)
+        self.std1 = jnp.float64(std1)
+        self.shape1 = int(shape1)
+        self.mean2 = jnp.float64(mean2)
+        self.std2 = jnp.float64(std2)
         self.shape = 1
-        self.lam = lam
-        self.p1 = LogNormalPrior((self.shape,), mean=0., std=1)
-        self.p2 = FixedGaussianPrior((self.shape,), mean=12., std=6.)
+        self.p1 = FixedGaussianPrior((self.shape1,), mean=mean1, std=std1)
+        self.p2 = FixedGaussianPrior((self.shape,), mean=mean2, std=std2)
         
         
     def log_prior(self, params):
         return self.p1.log_prior(params) + self.p2.log_prior(params)
     
     def log_prior_grad(self, params): 
-        return (jnp.concatenate([jnp.expand_dims(self.p1.log_prior_grad(params[0]), axis=0), 
-                               jnp.expand_dims(self.p2.log_prior_grad(params[1]), axis=0)]))
+        return (jnp.concatenate([(self.p1.log_prior_grad(params[:-1])), 
+                               jnp.expand_dims(self.p2.log_prior_grad(params[-1]), axis=0)]))
     
     def in_support(self, params): 
-        return jnp.concatenate([jnp.expand_dims(self.p1.in_support(params[0]), axis=0), 
-                               jnp.expand_dims(self.p2.in_support(params[1]), axis=0)])
+        return jnp.concatenate([jnp.expand_dims(self.p1.in_support(params[:-1])), 
+                               jnp.expand_dims(self.p2.in_support(params[-1]), axis=0)])
     
     def project_to_support(self, params):
-        return jnp.concatenate([jnp.expand_dims(self.p1.project_to_support(params[0]), axis=0), 
-                               jnp.expand_dims(self.p2.project_to_support(params[1]), axis=0)])
+        return jnp.concatenate([(self.p1.project_to_support(params[:-1])), 
+                               jnp.expand_dims(self.p2.project_to_support(params[-1]), axis=0)])
     
     def sample(self, key): 
         k, v1 =self.p1.sample(key)

@@ -14,7 +14,10 @@ class TopKFeedbackModel(EnvFeedbackModel):
     """Feedback model for Boltzmann-rational paired comparisons."""
     def __init__(self, env):
         super().__init__(env)
-        self._bias_prior = priors.MixedPrior(lam=(1.0), mean=15, std=6.0)
+        
+        # first dist is the noise on the bias prior.
+        self._bias_prior = priors.MixedPrior(shape1=16., mean1=0., std1=.5,
+                                             mean2=15., std2=6.0)
     
     @property
     def bias_prior(self):
@@ -64,11 +67,11 @@ class TopKFeedbackModel(EnvFeedbackModel):
     def predict(self, rmodel, params, states): 
         """takes in: parameters"""
         flat_states = states.flatten()
-        all_fn_values = rmodel #(self.env.observation_matrix)
+        all_fn_values = rmodel - params[:-1] #(self.env.observation_matrix)
         rew_est = (all_fn_values[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
         per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
-        return jax.nn.sigmoid(params[0]*(per_traj_rew_est-params[1]))
+        return jax.nn.sigmoid((per_traj_rew_est-params[-1]))
     
     #TODO write a training function for this. 
     

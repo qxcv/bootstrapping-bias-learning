@@ -69,6 +69,7 @@ class TopKExpert(Expert):
         assert K > 0.0 and K <= 1.0
         self.K = K
         self.cutoff = 0.0
+        self.bias = 0.5*np.random.randn(16,)
         
     def interact(self, n_demos, rmodel): 
         """
@@ -77,7 +78,7 @@ class TopKExpert(Expert):
         """
         states = n_demos['states']
         flat_states = states.flatten()
-        all_fn_values = rmodel.get_params() ##(self.env.observation_matrix)
+        all_fn_values = rmodel.get_params() - self.bias ##(self.env.observation_matrix)
         rew_est = (all_fn_values[flat_states]) # hopefully jax can do this, if not...need 1-hot.
         per_obs_rew  = jnp.reshape(rew_est, states.shape[:2] + rew_est.shape[1:])
         per_traj_rew_est = jnp.sum(per_obs_rew, axis=1)
@@ -96,7 +97,7 @@ class TopKExpert(Expert):
         return labels
         
     def label(self, x):
-        y = self.temp*(x-self.cutoff)
+        y = x-self.cutoff
         sig = jax.nn.sigmoid(y)
         p_topk = sig
         return p_topk > random.random()
