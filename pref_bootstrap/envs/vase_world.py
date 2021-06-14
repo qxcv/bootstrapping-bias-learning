@@ -1,7 +1,8 @@
-
-from pref_bootstrap.envs.mdp_interface import ModelBasedEnv
+from functools import lru_cache
 
 import numpy as np
+
+from pref_bootstrap.envs.mdp_interface import ModelBasedEnv
 
 
 class VaseWorld(ModelBasedEnv):
@@ -73,6 +74,7 @@ class VaseWorld(ModelBasedEnv):
     n_rows, n_cols = feature_planes.shape[1:]
 
     @property
+    @lru_cache(maxsize=None)
     def observation_matrix(self) -> np.ndarray:
         feat_planes_trans = np.transpose(self.feature_planes, (1, 2, 0))
         result = feat_planes_trans.reshape((-1, feat_planes_trans.shape[-1]))
@@ -80,6 +82,7 @@ class VaseWorld(ModelBasedEnv):
         return result
 
     @property
+    @lru_cache(maxsize=None)
     def transition_matrix(self) -> np.ndarray:
         # left/right/up/down actions (tuples indicate action number & effect
         # the action has on the row/col)
@@ -124,17 +127,20 @@ class VaseWorld(ModelBasedEnv):
         return trans_matrix
 
     @property
+    @lru_cache(maxsize=None)
     def reward_matrix(self) -> np.ndarray:
         reward_vec = self.observation_matrix @ self.reward_weights
         assert reward_vec.shape == (self.n_states, ), reward_vec
         return reward_vec
 
     @property
+    @lru_cache(maxsize=None)
     def horizon(self) -> int:
         # may need to tune this
         return self._horizon
 
     @property
+    @lru_cache(maxsize=None)
     def initial_state_dist(self) -> np.ndarray:
         """1D vector representing a distribution over initial states."""
         init_dist = np.zeros((self.n_states, ))

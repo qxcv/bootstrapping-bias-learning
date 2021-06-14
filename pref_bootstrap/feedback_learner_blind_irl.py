@@ -16,7 +16,7 @@ class BlindIRLFeedbackModel(EnvFeedbackModel):
     def __init__(self, env):
         super().__init__(env)
         self._bias_prior = priors.BetaPrior(
-            shape=(self.env.obs_dim, ), alpha=0.5, beta=0.5)
+            shape=(self.env.obs_dim, ), alpha=3.0, beta=2.0)
 
     @property
     def bias_prior(self):
