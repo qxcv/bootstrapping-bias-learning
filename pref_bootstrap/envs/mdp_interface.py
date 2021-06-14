@@ -13,7 +13,7 @@ class Mdp(object):
     it as the agent takes actions, and provides rewards to the agent.
     """
 
-    # FIXME(sam): replace this with the ModelBaseEnv abstraction from
+    # FIXME(sam): replace this with the ModelBasedEnv abstraction from
     # `imitation` (or just a hand-rolled abstraction).
 
     def __init__(self, mdp):

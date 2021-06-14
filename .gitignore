@@ -128,3 +128,6 @@ ENV/
 /results*
 
 *multi_learn_old*
+
+# pytype
+.pytype
