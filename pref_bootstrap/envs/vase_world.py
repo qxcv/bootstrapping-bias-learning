@@ -10,65 +10,60 @@ class VaseWorld(ModelBasedEnv):
     Agent must reach goal while collecting diamonds & avoiding vases/lava. Also
     has a slippery location where the agent could transition into any adjacent
     square, not just the desired one."""
-    _horizon = 15
+    _horizon = 14
     reward_weights = np.array([
-        # goal (0)
-        20.0,
-        # lava (1)
-        -160.0,
-        # diamond (2)
-        4.0,
-        # vase (3)
-        -4.0,
-        # slip (4)
+        # lava (0)
+        -30.0,
+        # vase (1)
+        -2.0,
+        # slip (2)
         0.0,
-        # distractor (5)
+        # distract (3)
         0.0,
+        # diamond (4)
+        2.0,
+        # goal (5)
+        5.0,
     ], dtype='float32')
+    plane_names = ['lava', 'vase', 'slip', 'distract', 'diamond', 'goal']
     slip_plane = np.array([
         # is this a "slippery" square?
         [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
     ], dtype='float32')
     feature_planes = np.array([
         [
-            # goal (0)
+            # lava (0)
+            [0, 0, 0, 0, 1, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+        ],
+        [
+            # vase (1)
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+        ],
+        # slip (2)
+        slip_plane.tolist(),
+        [
+            # distract (3)
+            [1, 0, 0, 1, 0, 0],
+            [1, 0, 0, 1, 1, 1],
+            [1, 0, 1, 1, 1, 1],
+        ],
+        [
+            # diamond (4)
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+        ],
+        [
+            # goal (5)
             [0, 0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-        ],
-        [
-            # lava (1)
-            [0, 0, 0, 0, 1, 0],
-            [0, 1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 1, 0],
-            [0, 1, 0, 0, 0, 0],
-        ],
-        [
-            # diamond (2)
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-        ],
-        [
-            # vase (3)
-            [0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-        ],
-        # slip (4)
-        slip_plane.tolist(),
-        [
-            # distractor (5)
-            [1, 0, 0, 1, 0, 0],
-            [1, 0, 0, 1, 1, 1],
-            [1, 1, 0, 0, 1, 1],
-            [1, 0, 1, 1, 1, 1],
         ],
     ], dtype='float32')
     n_rows, n_cols = feature_planes.shape[1:]
@@ -105,7 +100,7 @@ class VaseWorld(ModelBasedEnv):
                     if self.slip_plane[row, col]:
                         # with probability p_slip, replace the chosen action
                         # with a uniform random action
-                        p_slip = 0.8
+                        p_slip = 0.9
                         trans_matrix[src_state_num, act_num, tgt_state_num] \
                             = 1 - p_slip
                         for _, alt_delta in actions:

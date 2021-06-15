@@ -85,11 +85,12 @@ class ExponentialPrior(Prior):
 
     (for reference: exponential density is lam*exp(-lam*x)), for scalar x.)"""
 
-    def __init__(self, shape, *, lam=1.0):
+    def __init__(self, shape, *, lam=1.0, eps=1e-5):
         assert isinstance(lam, float)
         assert lam > 0
         self.shape = shape
         self.lam = lam
+        self.eps = eps
 
     def log_prior(self, params):
         nelem = params.size
@@ -99,10 +100,10 @@ class ExponentialPrior(Prior):
         return -self.lam * jnp.ones_like(params)
 
     def in_support(self, weights):
-        return jnp.all(weights >= 0)
+        return jnp.all(weights >= self.eps)
 
     def project_to_support(self, weights):
-        return jnp.maximum(weights, 0.0)
+        return jnp.maximum(weights, self.eps)
 
     def sample(self, key):
         key, inner_key = jrandom.split(key)
